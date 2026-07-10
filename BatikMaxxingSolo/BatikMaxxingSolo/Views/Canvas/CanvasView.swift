@@ -8,11 +8,23 @@
 import SwiftUI
 
 struct CanvasView: View {
-    var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
-    }
-}
+    let canvas: CanvasDataModel
+    let bodyImage: UIImage?
 
-#Preview {
-    CanvasView()
+    var body: some View {
+        VStack {
+            Text(canvas.name)
+                .font(.headline)
+
+            if let bodyImage {
+                Image(uiImage: bodyImage)
+                    .resizable()
+                    .scaledToFit()
+                    .background(Color.gray.opacity(0.3)) // biar transparansi kelihatan
+            } else {
+                Text("Tidak ada foto")
+            }
+        }
+        .padding()
+    }
 }

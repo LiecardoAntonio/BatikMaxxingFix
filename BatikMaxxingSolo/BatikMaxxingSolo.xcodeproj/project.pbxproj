@@ -10,9 +10,22 @@
 		8958D8192FFF89A800FC4989 /* BatikMaxxingSolo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BatikMaxxingSolo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		8958D8393000754400FC4989 /* Exceptions for "BatikMaxxingSolo" folder in "BatikMaxxingSolo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 8958D8182FFF89A800FC4989 /* BatikMaxxingSolo */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		8958D81B2FFF89A800FC4989 /* BatikMaxxingSolo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8958D8393000754400FC4989 /* Exceptions for "BatikMaxxingSolo" folder in "BatikMaxxingSolo" target */,
+			);
 			path = BatikMaxxingSolo;
 			sourceTree = "<group>";
 		};
@@ -251,8 +264,12 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = RMJ48S8CM3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BatikMaxxingSolo/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to open your camera";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need access to your gallery";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -282,8 +299,12 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = RMJ48S8CM3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BatikMaxxingSolo/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to open your camera";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need access to your gallery";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

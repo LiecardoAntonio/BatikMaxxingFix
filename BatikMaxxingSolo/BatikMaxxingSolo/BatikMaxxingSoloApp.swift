@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct BatikMaxxingSoloApp: App {
@@ -13,5 +14,6 @@ struct BatikMaxxingSoloApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: [CanvasDataModel.self, UserFullBodyImageModel.self]) // this will serve as the container to store the data so it will be persistent
     }
 }
