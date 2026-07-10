@@ -9,16 +9,7 @@ import SwiftUI
 
 // MARK: - Library View
 struct LibraryView: View {
-    @State private var selectedGender: GenderCategory = .man
-    @State private var expandedSectionID: UUID? = nil
-    
-    // Sample categories based on your Figma design
-    @State private var sections = [
-        ClothingSection(title: "Batik Shirts", hasDecorativeAsset: true),
-        ClothingSection(title: "Batik Pants", hasDecorativeAsset: true),
-        ClothingSection(title: "Outerwear", hasDecorativeAsset: false),
-        ClothingSection(title: "Casual Pants", hasDecorativeAsset: false)
-    ]
+    @State private var viewModel = LibraryViewModel()
     
     var body: some View {
         ZStack {
@@ -28,75 +19,49 @@ struct LibraryView: View {
             
             VStack(spacing: 0) {
                 // MARK: Navigation Bar
-                HStack {
-                    // Liquid Glass Back Button
-                    Button(action: { /* Back Action */ }) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.black)
-                            .frame(width: 44, height: 44)
-                            .background(
-                                Circle()
-                                    .fill(Color.white.opacity(0.6))
-                                    .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
-                            )
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
-                            )
-                    }
-                    
-                    Spacer()
-                    
+                ZStack {
+                    // 1. Center Title Layer (Guarantees perfect center-alignment regardless of button sizes)
                     Text("Clothing Library")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.black)
+                        .font(.system(size: 22, weight: .semibold)) // Matches the prominent typography in your design
+                        .foregroundColor(.primary)
                     
-                    Spacer()
-                    
-                    // Liquid Glass Select Button
-                    Button(action: { /* Select Action */ }) {
-                        Text("Select")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(
-                                RoundedRectangle(cornerRadius: 22)
-                                    .fill(Color.white.opacity(0.6))
-                                    .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 22)
-                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
-                            )
+                    // 2. Interactive Buttons Layer
+                    HStack {
+                        // Liquid Glass Back Button
+                        Button(action: { /* Back Action */ }) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.black)
+                                .frame(width: 44, height: 44)
+                                .glassEffect()
+                                // Swap with your custom modifier if needed: .glassEffect()
+                        }
+                        
+                        Spacer()
+                        
+                        // Liquid Glass Select Button
+                        Button(action: { /* Select Action */ }) {
+                            Text("Select")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 14)
+                                .frame(height: 44) // Locks height to match back button, lets width adapt to text
+                                .glassEffect()
+                                // Swap with your custom modifier if needed: .glassEffect()
+                        }
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 10)
+                .padding(.top, 8)
+                .frame(height: 56) // Standard native navigation bar height for layout consistency
                 
-                // MARK: Custom Segmented Control
-                HStack(spacing: 0) {
+                // MARK: Segmented Control
+                Picker("Gender", selection: $viewModel.selectedGender){
                     ForEach(GenderCategory.allCases) { category in
-                        Text(category.rawValue)
-                            .font(.system(size: 15, weight: .medium))
-                            .frame(maxWidth: .infinity, minHeight: 36)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(selectedGender == category ? Color.white : Color.clear)
-                                    .shadow(color: selectedGender == category ? Color.black.opacity(0.05) : Color.clear, radius: 2, x: 0, y: 1)
-                            )
-                            .foregroundColor(.black)
-                            .onTapGesture {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    selectedGender = category
-                                }
-                            }
+                        Text(category.rawValue.capitalized).tag(category)
                     }
                 }
-                .padding(3)
-                .background(Color(red: 0.91, green: 0.91, blue: 0.92))
-                .cornerRadius(10)
+                .pickerStyle(.segmented)
                 .padding(.horizontal, 16)
                 .padding(.top, 24)
                 .padding(.bottom, 16)
@@ -110,17 +75,17 @@ struct LibraryView: View {
                         MyOutfitsSection()
                         
                         // Dynamic Accordion Sections
-                        ForEach(sections) { section in
+                        ForEach(viewModel.sections) { section in
                             LibraryAccordionCard(
                                 title: section.title,
                                 hasAsset: section.hasDecorativeAsset,
-                                isExpanded: expandedSectionID == section.id,
+                                isExpanded: viewModel.expandedSectionID == section.id,
                                 onTap: {
                                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                        if expandedSectionID == section.id {
-                                            expandedSectionID = nil
+                                        if viewModel.expandedSectionID == section.id {
+                                            viewModel.expandedSectionID = nil
                                         } else {
-                                            expandedSectionID = section.id
+                                            viewModel.expandedSectionID = section.id
                                         }
                                     }
                                 }
