@@ -5,6 +5,12 @@
 //  Created by Liecardo on 09/07/26.
 //
 
+//  Layar kondisi belum ada canvas. State presentation (sheet, picker,
+//  camera) sengaja di View karena murni UI-lokal; logic foto ada di
+//  NoCanvasViewModel. onPhotoReady dipanggil saat foto badan selesai
+//  diproses & dititip — pemanggil (HomeView) yang menavigasi ke library.
+//
+
 import SwiftUI
 import PhotosUI
 import SwiftData
@@ -12,7 +18,7 @@ import SwiftData
 struct NoCanvasView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var viewModel: NoCanvasViewModel
-    let onCanvasCreated: (CanvasDataModel) -> Void
+    let onPhotoReady: () -> Void
 
     @State private var isSheetPresented = false
     @State private var isPhotosPickerPresented = false
@@ -57,19 +63,20 @@ struct NoCanvasView: View {
         .fullScreenCover(isPresented: $isCameraPresented) {
             CameraPickerView { image in
                 isCameraPresented = false
-                viewModel.handleCapturedFullBodyPhoto(image, in: modelContext, onCanvasCreated: onCanvasCreated)
+                viewModel.handleCapturedFullBodyPhoto(image, in: modelContext, onPhotoReady: onPhotoReady)
             }
             .ignoresSafeArea()
         }
         .onChange(of: viewModel.photosPickerItem) { _, _ in
-            viewModel.handlePickedFullBodyPhoto(in: modelContext, onCanvasCreated: onCanvasCreated)
+            viewModel.handlePickedFullBodyPhoto(in: modelContext, onPhotoReady: onPhotoReady)
         }
     }
 
+    // MARK: - Subviews
+
     private var emptyStateContent: some View {
         VStack(spacing: 12) {
-            
-            
+            // TODO: ganti dengan Image("EmptyStateIllustration") saat asset tersedia
             Image("ClothesFolded")
                 .font(.system(size: 80))
                 .foregroundStyle(.orange)
@@ -103,6 +110,11 @@ struct NoCanvasView: View {
 }
 
 #Preview {
-    NoCanvasView(viewModel: NoCanvasViewModel(), onCanvasCreated: { _ in })
-        .modelContainer(for: [CanvasDataModel.self, UserFullBodyImageModel.self], inMemory: true)
+    NoCanvasView(viewModel: NoCanvasViewModel(), onPhotoReady: { })
+        .modelContainer(for: [
+            CanvasDataModel.self,
+            CanvasItemModel.self,
+            UserFullBodyImageModel.self,
+            UserOutfitModel.self
+        ], inMemory: true)
 }

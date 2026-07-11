@@ -22,6 +22,11 @@ class CanvasDataModel: Identifiable {
     var createdAt: Date = Date()
     var lastUpdated: Date = Date()
     
+    /// Pakaian-pakaian pilihan canvas ini. .cascade: hapus canvas -> semua
+    /// catatan pilihannya ikut terhapus (mencegah orphan record).
+    @Relationship(deleteRule: .cascade, inverse: \CanvasItemModel.canvas)
+    var items: [CanvasItemModel] = []
+    
     init(name: String, fullBodyPicData: Data? = nil) {
         self.id = UUID()
         self.name = name

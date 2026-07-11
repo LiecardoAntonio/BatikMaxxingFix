@@ -4,33 +4,28 @@
 //
 //  Created by James Richard Renaldo on 11/07/26.
 //
+
+//  Kartu satu item pakaian di library. Bisa merender dua sumber:
+//  asset bawaan (bundled) maupun upload user (imageData).
+//
+
 import SwiftUI
 
 struct ClothingItemCard: View {
     let item: ClothingItem
     let isSelected: Bool
     let onSelect: () -> Void
-    
+
     var body: some View {
         Button(action: onSelect) {
             ZStack {
-                // Enveloping background change layer
                 if isSelected {
                     Color.orange.opacity(0.15)
                 } else {
                     Color(red: 0.96, green: 0.96, blue: 0.96)
                 }
-                
-                if UIImage(named: item.imageName) != nil {
-                    Image(item.imageName)
-                        .resizable()
-                        .scaledToFit()
-                        .padding(12)
-                } else {
-                    Image(systemName: "shirt.fill")
-                        .font(.system(size: 40))
-                        .foregroundColor(.gray.opacity(0.4))
-                }
+
+                itemImage
             }
             .frame(width: 140, height: 140)
             .cornerRadius(12)
@@ -50,4 +45,52 @@ struct ClothingItemCard: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
+
+    /// Render sesuai sumber item; fallback ke icon kalau gambar tidak ketemu.
+    @ViewBuilder
+    private var itemImage: some View {
+        switch item.source {
+        case .bundled(let assetName):
+            if UIImage(named: assetName) != nil {
+                Image(assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(12)
+            } else {
+                fallbackIcon
+            }
+
+        case .userUpload(_, let imageData):
+            if let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(12)
+            } else {
+                fallbackIcon
+            }
+        }
+    }
+
+    private var fallbackIcon: some View {
+        Image(systemName: "shirt.fill")
+            .font(.system(size: 40))
+            .foregroundColor(.gray.opacity(0.4))
+    }
+}
+
+#Preview {
+    HStack {
+        ClothingItemCard(
+            item: ClothingItem(name: "Contoh", source: .bundled(assetName: "ClothingItems/blue-parang-batik-shirt")),
+            isSelected: false,
+            onSelect: {}
+        )
+        ClothingItemCard(
+            item: ClothingItem(name: "Terpilih", source: .bundled(assetName: "tidak-ada")),
+            isSelected: true,
+            onSelect: {}
+        )
+    }
+    .padding()
 }

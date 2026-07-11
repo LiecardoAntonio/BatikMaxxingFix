@@ -18,17 +18,16 @@ struct HomeView: View {
     @State private var gridViewModel = CanvasGridViewModel()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $homeViewModel.path) {
             ZStack {
                 Color.white.ignoresSafeArea(edges: .all)
 
                 VStack {
                     HStack {
-                        Text("Collection")
+                        Text("All Outfits")
                             .font(.largeTitle)
                             .fontWeight(.bold)
-                            .foregroundColor(Color.black)
-                            
+                            .foregroundColor(.orange)
                         Spacer()
                     }
                     .padding(16)
@@ -36,27 +35,43 @@ struct HomeView: View {
                     if canvases.isEmpty {
                         NoCanvasView(
                             viewModel: noCanvasViewModel,
-                            onCanvasCreated: { homeViewModel.openCanvas($0) }
+                            onPhotoReady: { homeViewModel.startClothingSelection() }
                         )
                     } else {
                         CanvasGridView(
                             viewModel: gridViewModel,
                             noCanvasViewModel: noCanvasViewModel,
                             canvases: canvases,
-                            onCanvasTapped: { homeViewModel.openCanvas($0) }
+                            onCanvasTapped: { homeViewModel.openCanvas($0) },
+                            onPhotoReady: { homeViewModel.startClothingSelection() }
                         )
                     }
                 }
             }
-            .navigationDestination(item: $homeViewModel.activeCanvas) { canvas in
-                CanvasView(canvas: canvas)
+            .navigationDestination(for: HomeRoute.self) { route in
+                switch route {
+                case .librarySelection:
+                    LibraryView(onConfirm: { selectedItems in
+                        noCanvasViewModel.createCanvas(with: selectedItems, in: canvasContext) { newCanvas in
+                            homeViewModel.completeCanvasCreation(newCanvas)
+                        }
+                    })
+
+                case .canvas(let canvas):
+                    CanvasView(canvas: canvas)
+                }
+            }
+            .onChange(of: homeViewModel.path) { _, newPath in
+                // Library hilang dari tumpukan tanpa canvas lahir
+                // (user back) -> buang foto titipan. Batal total.
+                if !newPath.contains(.librarySelection) {
+                    noCanvasViewModel.cancelPendingSelection()
+                }
             }
             .alert("Rename Canvas", isPresented: $gridViewModel.isRenamePresented) {
                 TextField("Name", text: $gridViewModel.renameText)
                 Button("Cancel", role: .cancel) { }
-                Button("Save") {
-                    gridViewModel.commitRename()
-                }
+                Button("Save") { gridViewModel.commitRename() }
             }
             .alert("Delete this canvas?", isPresented: $gridViewModel.isDeleteConfirmationPresented) {
                 Button("Delete", role: .destructive) {
@@ -72,5 +87,10 @@ struct HomeView: View {
 
 #Preview {
     HomeView()
-        .modelContainer(for: [CanvasDataModel.self, UserFullBodyImageModel.self], inMemory: true)
+        .modelContainer(for: [
+            CanvasDataModel.self,
+            CanvasItemModel.self,
+            UserFullBodyImageModel.self,
+            UserOutfitModel.self
+        ], inMemory: true)
 }
