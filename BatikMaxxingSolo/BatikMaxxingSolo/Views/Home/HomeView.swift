@@ -36,7 +36,7 @@ struct HomeView: View {
                     }
                 }
                 .navigationDestination(item: $viewModel.activeCanvas) { canvas in
-                    CanvasView(canvas: canvas, bodyImage: viewModel.activeCanvasBodyImage)
+                    CanvasView(canvas: canvas)
                 }
                 .alert("Rename Canvas", isPresented: $viewModel.isRenamePresented) {
                                 TextField("Name", text: $viewModel.renameText)

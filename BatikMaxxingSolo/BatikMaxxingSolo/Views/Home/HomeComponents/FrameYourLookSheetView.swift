@@ -12,7 +12,7 @@
 
 import SwiftUI
 
-struct FrameYourLookSheet: View {
+struct FrameYourLookSheetView: View {
     let onTakePhoto: () -> Void
     let onChoosePhoto: () -> Void
 

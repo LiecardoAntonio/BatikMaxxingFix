@@ -13,38 +13,15 @@ struct NoCanvasView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var viewModel: HomeViewModel
 
+    @State private var isSheetPresented = false
     @State private var isPhotosPickerPresented = false
 
     var body: some View {
-        VStack(alignment: .center) {
+        VStack {
             Spacer()
-
-            VStack {
-                Image(systemName: "heart.fill")
-                    .padding(10)
-                    .foregroundColor(Color.orange)
-                Text("To mix and match, do something")
-            }
-
+            emptyStateContent
             Spacer()
-
-            Menu {
-                Button("Choose in gallery") {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        isPhotosPickerPresented = true
-                    }
-                }
-                Button("Open camera") {
-                    print("Open camera")
-                }
-            } label: {
-                Text("Take a full body picture")
-            }
-            .frame(maxWidth: 320)
-            .padding(16)
-            .foregroundColor(Color.white)
-            .background(Color.orange)
-            .cornerRadius(10)
+            getStartedButton
 
             if viewModel.isProcessingPhoto {
                 ProgressView("Removing background...")
@@ -52,6 +29,21 @@ struct NoCanvasView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .sheet(isPresented: $isSheetPresented) {
+            FrameYourLookSheetView(
+                onTakePhoto: {
+                    // Camera menyusul — belum diimplementasikan
+                },
+                onChoosePhoto: {
+                    isSheetPresented = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        isPhotosPickerPresented = true
+                    }
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
         .photosPicker(
             isPresented: $isPhotosPickerPresented,
             selection: $viewModel.photosPickerItem,
@@ -61,4 +53,46 @@ struct NoCanvasView: View {
             viewModel.handlePickedFullBodyPhoto(in: modelContext)
         }
     }
+
+    // MARK: - Subviews
+
+    private var emptyStateContent: some View {
+        VStack(spacing: 12) {
+            // TODO: ganti dengan Image("EmptyStateIllustration")
+            // begitu asset dari desainer tersedia
+            Image(systemName: "tshirt")
+                .font(.system(size: 80))
+                .foregroundStyle(.orange)
+
+            Text("Clothes still folded up?")
+                .font(.title3.bold())
+
+            Text("Tap the button to start building your perfect fit!")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 32)
+    }
+
+    private var getStartedButton: some View {
+        Button {
+            isSheetPresented = true
+        } label: {
+            Text("Get Started")
+                .font(.headline)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Color.orange)
+                .clipShape(Capsule())
+        }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 8)
+    }
+}
+
+#Preview {
+    NoCanvasView(viewModel: HomeViewModel())
+        .modelContainer(for: [CanvasDataModel.self, UserFullBodyImageModel.self], inMemory: true)
 }

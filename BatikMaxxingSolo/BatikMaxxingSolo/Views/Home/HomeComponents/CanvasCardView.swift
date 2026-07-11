@@ -7,8 +7,6 @@
 
 import SwiftUI
 
-import SwiftUI
-
 struct CanvasCardView: View {
     let canvas: CanvasDataModel
 
