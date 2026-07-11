@@ -10,53 +10,67 @@ import SwiftData
 
 struct HomeView: View {
     @Environment(\.modelContext) private var canvasContext
-    @Query private var canvases: [CanvasDataModel]
-    @State private var viewModel = HomeViewModel()
-    
+    @Query(sort: \CanvasDataModel.lastUpdated, order: .reverse)
+    private var canvases: [CanvasDataModel]
+
+    @State private var homeViewModel = HomeViewModel()
+    @State private var noCanvasViewModel = NoCanvasViewModel()
+    @State private var gridViewModel = CanvasGridViewModel()
+
     var body: some View {
-            NavigationStack {
-                ZStack {
-                    Color.white.ignoresSafeArea(edges: .all)
+        NavigationStack {
+            ZStack {
+                Color.white.ignoresSafeArea(edges: .all)
 
-                    VStack{
-                        HStack {
-                            Text("All Outfits")
-                                .font(.largeTitle)
-                                .fontWeight(.bold)
-                                .foregroundColor(.orange)
-                            Spacer()
-                        }
-                        .padding(16)
+                VStack {
+                    HStack {
+                        Text("Collection")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(Color.black)
+                            
+                        Spacer()
+                    }
+                    .padding(16)
 
-                        if canvases.isEmpty {
-                            NoCanvasView(viewModel: viewModel)
-                        } else {
-                            CanvasGridView(viewModel: viewModel, canvases: canvases)
-                        }
+                    if canvases.isEmpty {
+                        NoCanvasView(
+                            viewModel: noCanvasViewModel,
+                            onCanvasCreated: { homeViewModel.openCanvas($0) }
+                        )
+                    } else {
+                        CanvasGridView(
+                            viewModel: gridViewModel,
+                            noCanvasViewModel: noCanvasViewModel,
+                            canvases: canvases,
+                            onCanvasTapped: { homeViewModel.openCanvas($0) }
+                        )
                     }
-                }
-                .navigationDestination(item: $viewModel.activeCanvas) { canvas in
-                    CanvasView(canvas: canvas, bodyImage: viewModel.activeCanvasBodyImage)
-                }
-                .alert("Rename Canvas", isPresented: $viewModel.isRenamePresented) {
-                                TextField("Name", text: $viewModel.renameText)
-                                Button("Cancel", role: .cancel) { }
-                                Button("Save") {
-                                    viewModel.commitRename()
-                                }
-                            }
-                .alert("Delete this canvas?", isPresented: $viewModel.isDeleteConfirmationPresented) {
-                    Button("Delete", role: .destructive) {
-                        viewModel.confirmDelete(in: canvasContext)
-                    }
-                    Button("Cancel", role: .cancel) { }
-                } message: {
-                    Text("This action cannot be undone.")
                 }
             }
+            .navigationDestination(item: $homeViewModel.activeCanvas) { canvas in
+                CanvasView(canvas: canvas)
+            }
+            .alert("Rename Canvas", isPresented: $gridViewModel.isRenamePresented) {
+                TextField("Name", text: $gridViewModel.renameText)
+                Button("Cancel", role: .cancel) { }
+                Button("Save") {
+                    gridViewModel.commitRename()
+                }
+            }
+            .alert("Delete this canvas?", isPresented: $gridViewModel.isDeleteConfirmationPresented) {
+                Button("Delete", role: .destructive) {
+                    gridViewModel.confirmDelete(in: canvasContext)
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This action cannot be undone.")
+            }
         }
+    }
 }
 
 #Preview {
     HomeView()
+        .modelContainer(for: [CanvasDataModel.self, UserFullBodyImageModel.self], inMemory: true)
 }
