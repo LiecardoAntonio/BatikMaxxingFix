@@ -35,12 +35,10 @@ struct FrameYourLookSheetView: View {
     // MARK: - Subviews
 
     private var illustration: some View {
-        // TODO: ganti dengan Image("FrameYourLookIllustration")
-        // begitu asset dari desainer masuk ke Assets.xcassets
         RoundedRectangle(cornerRadius: 20)
             .stroke(Color.gray.opacity(0.3), lineWidth: 1)
             .overlay(
-                Image(systemName: "figure.stand")
+                Image("FullBody")
                     .font(.system(size: 120))
                     .foregroundStyle(.black)
             )

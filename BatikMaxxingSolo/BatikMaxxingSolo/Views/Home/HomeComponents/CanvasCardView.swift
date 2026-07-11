@@ -31,12 +31,12 @@ struct CanvasCardView: View {
             }
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.orange.opacity(0.6))
+            .background(Color.batikOrange)
         }
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.orange.opacity(0.5), lineWidth: 1)
+                .stroke(Color.batikOrange, lineWidth: 1)
         )
         
     }
