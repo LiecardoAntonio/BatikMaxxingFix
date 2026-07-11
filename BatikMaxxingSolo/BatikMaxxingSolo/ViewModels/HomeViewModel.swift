@@ -56,10 +56,23 @@ final class HomeViewModel {
             do {
                 let processedImage = try await backgroundRemovalService.removeBackground(from: uiImage)
 
+                guard let photoData = processedImage.pngData() else { return }
+                // pngData() penting (bukan jpegData) — PNG mendukung transparansi,
+                // dan hasil remove background itu justru intinya transparan!
+
+                // Cari profil yang sudah ada (Read manual, tanpa @Query)
+                let descriptor = FetchDescriptor<UserFullBodyImageModel>()
+                let existingProfile = try? context.fetch(descriptor).first
+
+                if let profile = existingProfile {
+                    profile.fullBodyPicData = photoData      // update — reference type!
+                } else {
+                    let newProfile = UserFullBodyImageModel(fullBodyPicData: photoData)
+                    context.insert(newProfile)
+                }
+
                 let newCanvas = CanvasDataModel(name: "Untitled")
                 context.insert(newCanvas)
-
-                activeCanvasBodyImage = processedImage
                 activeCanvas = newCanvas
             } catch {
                 print("⚠️ Background removal gagal: \(error)")

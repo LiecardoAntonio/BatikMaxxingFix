@@ -20,7 +20,7 @@ struct CanvasView: View {
                 Image(uiImage: bodyImage)
                     .resizable()
                     .scaledToFit()
-                    .background(Color.gray.opacity(0.3)) // biar transparansi kelihatan
+                    .background(Color.gray.opacity(0.3))
             } else {
                 Text("Tidak ada foto")
             }
