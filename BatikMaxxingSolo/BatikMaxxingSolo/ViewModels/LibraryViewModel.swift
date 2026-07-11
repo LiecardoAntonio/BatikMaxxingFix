@@ -15,12 +15,8 @@ final class LibraryViewModel {
     var expandedSectionID: UUID? = nil
     
     // Sample categories based on your Figma design
-    var sections: [ClothingSection] = [
-        ClothingSection(title: "Batik Shirts", hasDecorativeAsset: true),
-        ClothingSection(title: "Batik Pants", hasDecorativeAsset: true),
-        ClothingSection(title: "Outerwear", hasDecorativeAsset: false),
-        ClothingSection(title: "Casual Pants", hasDecorativeAsset: false)
-    ]
+    var myOutfits: [ClothingItem] = LibraryMockData.myOutfits
+    var sections: [ClothingSection] = LibraryMockData.allSections
     
     // MARK: - Intent Methods
     func toggleSection(_ sectionID: UUID) {
