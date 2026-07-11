@@ -10,10 +10,9 @@ import SwiftData
 
 struct CanvasView: View {
     let canvas: CanvasDataModel
-    @Query private var profiles: [UserFullBodyImageModel]
 
     private var bodyImage: UIImage? {
-        guard let data = profiles.first?.fullBodyPicData else { return nil }
+        guard let data = canvas.fullBodyPicData else { return nil }
         return UIImage(data: data)
     }
 
@@ -31,4 +30,11 @@ struct CanvasView: View {
         }
         .padding()
     }
+}
+
+#Preview {
+    NavigationStack {
+        CanvasView(canvas: CanvasDataModel(name: "Preview Canvas"))
+    }
+    .modelContainer(for: [CanvasDataModel.self, UserFullBodyImageModel.self], inMemory: true)
 }

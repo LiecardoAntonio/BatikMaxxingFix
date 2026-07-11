@@ -11,10 +11,12 @@ import SwiftData
 
 struct NoCanvasView: View {
     @Environment(\.modelContext) private var modelContext
-    @Bindable var viewModel: HomeViewModel
+    @Bindable var viewModel: NoCanvasViewModel
+    let onCanvasCreated: (CanvasDataModel) -> Void
 
     @State private var isSheetPresented = false
     @State private var isPhotosPickerPresented = false
+    @State private var isCameraPresented = false
 
     var body: some View {
         VStack {
@@ -32,7 +34,10 @@ struct NoCanvasView: View {
         .sheet(isPresented: $isSheetPresented) {
             FrameYourLookSheetView(
                 onTakePhoto: {
-                    // Camera menyusul — belum diimplementasikan
+                    isSheetPresented = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        isCameraPresented = true
+                    }
                 },
                 onChoosePhoto: {
                     isSheetPresented = false
@@ -49,17 +54,21 @@ struct NoCanvasView: View {
             selection: $viewModel.photosPickerItem,
             matching: .images
         )
+        .fullScreenCover(isPresented: $isCameraPresented) {
+            CameraPickerView { image in
+                isCameraPresented = false
+                viewModel.handleCapturedFullBodyPhoto(image, in: modelContext, onCanvasCreated: onCanvasCreated)
+            }
+            .ignoresSafeArea()
+        }
         .onChange(of: viewModel.photosPickerItem) { _, _ in
-            viewModel.handlePickedFullBodyPhoto(in: modelContext)
+            viewModel.handlePickedFullBodyPhoto(in: modelContext, onCanvasCreated: onCanvasCreated)
         }
     }
 
-    // MARK: - Subviews
-
     private var emptyStateContent: some View {
         VStack(spacing: 12) {
-            // TODO: ganti dengan Image("EmptyStateIllustration")
-            // begitu asset dari desainer tersedia
+            // TODO: ganti dengan Image("EmptyStateIllustration") saat asset tersedia
             Image(systemName: "tshirt")
                 .font(.system(size: 80))
                 .foregroundStyle(.orange)
@@ -93,6 +102,6 @@ struct NoCanvasView: View {
 }
 
 #Preview {
-    NoCanvasView(viewModel: HomeViewModel())
+    NoCanvasView(viewModel: NoCanvasViewModel(), onCanvasCreated: { _ in })
         .modelContainer(for: [CanvasDataModel.self, UserFullBodyImageModel.self], inMemory: true)
 }
