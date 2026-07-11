@@ -15,14 +15,18 @@ final class NoCanvasViewModel {
     var photosPickerItem: PhotosPickerItem?
     var isProcessingPhoto = false
 
+    /// "Titipan": foto badan yang sudah diproses, menunggu user memilih
+    /// baju di library. Canvas BELUM dibuat selama masih di sini —
+    /// kalau user batal dari library, titipan dibuang, tidak ada jejak.
+    private(set) var pendingPhotoData: Data?
+
     private let backgroundRemovalService = BackgroundRemovalService()
 
-    // MARK: - Entry points
+    // MARK: - Entry points (galeri / kamera / pakai foto lama)
 
-    /// Alur galeri (dipakai NoCanvasView & sheet konfirmasi "Choose Photo").
     func handlePickedFullBodyPhoto(
         in context: ModelContext,
-        onCanvasCreated: @escaping (CanvasDataModel) -> Void
+        onPhotoReady: @escaping () -> Void
     ) {
         guard let item = photosPickerItem else { return }
         isProcessingPhoto = true
@@ -35,51 +39,46 @@ final class NoCanvasViewModel {
                 isProcessingPhoto = false
                 return
             }
-            await processFullBodyImage(uiImage, in: context, onCanvasCreated: onCanvasCreated)
+            await processFullBodyImage(uiImage, in: context, onPhotoReady: onPhotoReady)
         }
     }
 
-    /// Alur kamera (dipakai NoCanvasView & sheet konfirmasi "Retake Photo").
     func handleCapturedFullBodyPhoto(
         _ image: UIImage?,
         in context: ModelContext,
-        onCanvasCreated: @escaping (CanvasDataModel) -> Void
+        onPhotoReady: @escaping () -> Void
     ) {
         guard let image else { return }
         isProcessingPhoto = true
 
         Task {
-            await processFullBodyImage(image, in: context, onCanvasCreated: onCanvasCreated)
+            await processFullBodyImage(image, in: context, onPhotoReady: onPhotoReady)
         }
     }
 
-    /// Alur "Proceed" di sheet konfirmasi: pakai foto profil terakhir apa
-    /// adanya (tanpa proses ulang), langsung buat canvas.
-    func proceedWithExistingPhoto(
-        in context: ModelContext,
-        onCanvasCreated: (CanvasDataModel) -> Void
-    ) {
+    /// "Proceed" di sheet konfirmasi: pakai foto profil terakhir tanpa
+    /// proses ulang — langsung jadi titipan.
+    func proceedWithExistingPhoto(in context: ModelContext, onPhotoReady: () -> Void) {
         let descriptor = FetchDescriptor<UserFullBodyImageModel>()
         guard let photoData = try? context.fetch(descriptor).first?.fullBodyPicData else { return }
-        createCanvas(withPhotoData: photoData, in: context, onCanvasCreated: onCanvasCreated)
+        pendingPhotoData = photoData
+        onPhotoReady()
     }
 
-    // MARK: - Proses bersama
+    // MARK: - Proses foto (remove bg + update template profil + titip)
 
-    /// Remove background → update profil (template foto terbaru) →
-    /// buat canvas dengan SNAPSHOT foto itu.
     private func processFullBodyImage(
         _ uiImage: UIImage,
         in context: ModelContext,
-        onCanvasCreated: @escaping (CanvasDataModel) -> Void
+        onPhotoReady: @escaping () -> Void
     ) async {
         defer { isProcessingPhoto = false }
 
         do {
-            let processedImage = try await backgroundRemovalService.removeBackground(from: uiImage)
-            guard let photoData = processedImage.pngData() else { return }
+            let processed = try await backgroundRemovalService.removeBackground(from: uiImage)
+            guard let photoData = processed.pngData() else { return }
 
-            // Update profil: template untuk canvas-canvas BERIKUTNYA.
+            // Update profil = template untuk canvas berikutnya (tetap!)
             let descriptor = FetchDescriptor<UserFullBodyImageModel>()
             if let profile = try? context.fetch(descriptor).first {
                 profile.fullBodyPicData = photoData
@@ -87,19 +86,44 @@ final class NoCanvasViewModel {
                 context.insert(UserFullBodyImageModel(fullBodyPicData: photoData))
             }
 
-            createCanvas(withPhotoData: photoData, in: context, onCanvasCreated: onCanvasCreated)
+            pendingPhotoData = photoData
+            onPhotoReady()
         } catch {
             print("⚠️ Background removal gagal: \(error)")
         }
     }
 
-    private func createCanvas(
-        withPhotoData photoData: Data,
+    // MARK: - Kelahiran canvas (dipanggil dari onConfirm library)
+
+    func createCanvas(
+        with selectedItems: Set<ClothingItem>,
         in context: ModelContext,
-        onCanvasCreated: (CanvasDataModel) -> Void
+        onCreated: (CanvasDataModel) -> Void
     ) {
+        guard let photoData = pendingPhotoData else { return }
+
         let newCanvas = CanvasDataModel(name: "Untitled", fullBodyPicData: photoData)
         context.insert(newCanvas)
-        onCanvasCreated(newCanvas)
+
+        // Pilihan baju -> CanvasItemModel, sesuai jenis sumbernya
+        for item in selectedItems {
+            let canvasItem: CanvasItemModel
+            switch item.source {
+            case .bundled(let assetName):
+                canvasItem = CanvasItemModel(assetName: assetName)      // referensi (hemat)
+            case .userUpload(_, let imageData):
+                canvasItem = CanvasItemModel(imageData: imageData)      // salinan (snapshot)
+            }
+            context.insert(canvasItem)
+            canvasItem.canvas = newCanvas
+        }
+
+        pendingPhotoData = nil
+        onCreated(newCanvas)
+    }
+
+    /// User batal dari library → buang titipan.
+    func cancelPendingSelection() {
+        pendingPhotoData = nil
     }
 }

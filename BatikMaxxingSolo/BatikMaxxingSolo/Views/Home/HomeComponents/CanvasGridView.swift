@@ -5,6 +5,12 @@
 //  Created by Liecardo on 09/07/26.
 //
 
+//  Grid canvas + search + tombol "+". Dua jalur keluar:
+//  - onCanvasTapped: tap card -> buka canvas lama (langsung ke CanvasView)
+//  - onPhotoReady: foto badan siap dari sheet konfirmasi -> pemanggil
+//    (HomeView) menavigasi ke library untuk pilih baju canvas BARU
+//
+
 import SwiftUI
 import PhotosUI
 import SwiftData
@@ -15,6 +21,7 @@ struct CanvasGridView: View {
     @Bindable var noCanvasViewModel: NoCanvasViewModel
     let canvases: [CanvasDataModel]
     let onCanvasTapped: (CanvasDataModel) -> Void
+    let onPhotoReady: () -> Void
 
     // Foto profil terakhir — untuk preview di sheet konfirmasi.
     @Query private var profiles: [UserFullBodyImageModel]
@@ -68,7 +75,7 @@ struct CanvasGridView: View {
                     }
                 }
                 .padding(16)
-                .padding(.bottom, 80)
+                .padding(.bottom, 80) // ruang supaya card terakhir tidak ketutup bottom bar
             }
 
             bottomBar
@@ -78,9 +85,7 @@ struct CanvasGridView: View {
                 previewImage: latestProfileImage,
                 onProceed: {
                     isConfirmationSheetPresented = false
-                    noCanvasViewModel.proceedWithExistingPhoto(in: modelContext) { newCanvas in
-                        onCanvasTapped(newCanvas)
-                    }
+                    noCanvasViewModel.proceedWithExistingPhoto(in: modelContext, onPhotoReady: onPhotoReady)
                 },
                 onRetakePhoto: {
                     isConfirmationSheetPresented = false
@@ -106,18 +111,16 @@ struct CanvasGridView: View {
         .fullScreenCover(isPresented: $isCameraPresented) {
             CameraPickerView { image in
                 isCameraPresented = false
-                noCanvasViewModel.handleCapturedFullBodyPhoto(image, in: modelContext) { newCanvas in
-                    onCanvasTapped(newCanvas)
-                }
+                noCanvasViewModel.handleCapturedFullBodyPhoto(image, in: modelContext, onPhotoReady: onPhotoReady)
             }
             .ignoresSafeArea()
         }
         .onChange(of: noCanvasViewModel.photosPickerItem) { _, _ in
-            noCanvasViewModel.handlePickedFullBodyPhoto(in: modelContext) { newCanvas in
-                onCanvasTapped(newCanvas)
-            }
+            noCanvasViewModel.handlePickedFullBodyPhoto(in: modelContext, onPhotoReady: onPhotoReady)
         }
     }
+
+    // MARK: - Bottom bar (search + create)
 
     private var bottomBar: some View {
         HStack(spacing: 12) {
@@ -160,7 +163,13 @@ struct CanvasGridView: View {
             CanvasDataModel(name: "Outfit Kantor"),
             CanvasDataModel(name: "Kondangan")
         ],
-        onCanvasTapped: { _ in }
+        onCanvasTapped: { _ in },
+        onPhotoReady: { }
     )
-    .modelContainer(for: [CanvasDataModel.self, UserFullBodyImageModel.self], inMemory: true)
+    .modelContainer(for: [
+        CanvasDataModel.self,
+        CanvasItemModel.self,
+        UserFullBodyImageModel.self,
+        UserOutfitModel.self
+    ], inMemory: true)
 }
