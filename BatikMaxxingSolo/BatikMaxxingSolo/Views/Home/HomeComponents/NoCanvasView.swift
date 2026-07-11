@@ -68,8 +68,9 @@ struct NoCanvasView: View {
 
     private var emptyStateContent: some View {
         VStack(spacing: 12) {
-            // TODO: ganti dengan Image("EmptyStateIllustration") saat asset tersedia
-            Image(systemName: "tshirt")
+            
+            
+            Image("ClothesFolded")
                 .font(.system(size: 80))
                 .foregroundStyle(.orange)
 
