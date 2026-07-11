@@ -5,7 +5,6 @@
 //  Created by James Richard Renaldo on 11/07/26.
 //
 
-
 import SwiftUI
 
 struct LibrarySectionCard<Content: View>: View {
@@ -15,7 +14,6 @@ struct LibrarySectionCard<Content: View>: View {
     let onTap: () -> Void
     let content: Content
     
-    // Custom initializer leveraging @ViewBuilder for flexible body injection
     init(
         title: String,
         hasAsset: Bool = false,
@@ -69,8 +67,7 @@ struct LibrarySectionCard<Content: View>: View {
                     .padding(.all, 24)
             }
         }
-        // Unified UI styling configuration
-        .background(isExpanded ? Color("E6A63C").opacity(0.5) : Color.white)
+        .background(Color.white) // Added explicit background fill card layer
         .cornerRadius(14)
         .overlay(
             RoundedRectangle(cornerRadius: 14)

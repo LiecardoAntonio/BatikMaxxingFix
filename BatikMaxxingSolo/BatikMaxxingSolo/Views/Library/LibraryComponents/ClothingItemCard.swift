@@ -1,20 +1,25 @@
 //
-//  ClothingItemCard.swift
+//  ClothingItemCard 2.swift
 //  BatikMaxxingSolo
 //
 //  Created by James Richard Renaldo on 11/07/26.
 //
-
 import SwiftUI
 
-// MARK: - Component: Individual Clothing Card
 struct ClothingItemCard: View {
     let item: ClothingItem
+    let isSelected: Bool
+    let onSelect: () -> Void
     
     var body: some View {
-        VStack(spacing: 8) {
+        Button(action: onSelect) {
             ZStack {
-                Color(red: 0.96, green: 0.96, blue: 0.96)
+                // Enveloping background change layer
+                if isSelected {
+                    Color.orange.opacity(0.15)
+                } else {
+                    Color(red: 0.96, green: 0.96, blue: 0.96)
+                }
                 
                 if UIImage(named: item.imageName) != nil {
                     Image(item.imageName)
@@ -27,22 +32,22 @@ struct ClothingItemCard: View {
                         .foregroundColor(.gray.opacity(0.4))
                 }
             }
-            .frame(width: 140, height: 105) // Scaled wide to host original grid asset constraints nicely
-            .cornerRadius(8)
-            
-            Text(item.name)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.black)
-                .lineLimit(1)
-                .padding(.horizontal, 6)
+            .frame(width: 140, height: 140)
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(
+                        isSelected ? Color.orange.opacity(0.4) : Color(red: 0.88, green: 0.88, blue: 0.88),
+                        lineWidth: isSelected ? 2 : 1
+                    )
+            )
+            .shadow(
+                color: isSelected ? Color.orange.opacity(0.15) : Color.black.opacity(0.03),
+                radius: 4,
+                x: 0,
+                y: 2
+            )
         }
-        .frame(width: 140, height: 140) // Anchored securely back to your original view size spec
-        .background(Color.white)
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 2)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(red: 0.88, green: 0.88, blue: 0.88), lineWidth: 1)
-        )
+        .buttonStyle(PlainButtonStyle())
     }
 }
