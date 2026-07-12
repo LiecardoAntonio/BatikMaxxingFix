@@ -120,6 +120,18 @@ final class CanvasViewModel {
         canvas.updateLastUpdated()
         deselect()
     }
+    
+    // MARK: - Resize & Rotate (commit di akhir gesture)
+    func commitResize(_ item: CanvasItemModel, scale: CGFloat, on canvas: CanvasDataModel) {
+        // Clamp supaya item tidak lenyap (terlalu kecil) atau menelan layar
+        item.relativeWidth = (item.relativeWidth * Double(scale)).clamped(to: 0.08...1.5)
+        canvas.updateLastUpdated()
+    }
+
+    func commitRotation(_ item: CanvasItemModel, degrees: Double, on canvas: CanvasDataModel) {
+        item.rotationDegrees += degrees
+        canvas.updateLastUpdated()
+    }
 
     /// onConfirm library (mode add-clothes) = daftar FINAL pilihan canvas.
     /// Item lama yang tidak ada di daftar -> dihapus dari canvas & tray;

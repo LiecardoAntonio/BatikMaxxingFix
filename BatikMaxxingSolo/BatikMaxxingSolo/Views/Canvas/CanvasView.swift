@@ -58,6 +58,12 @@ struct CanvasView: View {
                             onTap: { viewModel.select(item) },
                             onDragEnded: { translation in
                                 viewModel.commitDrag(item, translation: translation, canvasSize: geo.size, on: canvas)
+                            },
+                            onResizeEnded: { scale in
+                                viewModel.commitResize(item, scale: scale, on: canvas)
+                            },
+                            onRotateEnded: { degrees in
+                                viewModel.commitRotation(item, degrees: degrees, on: canvas)
                             }
                         )
                     }
