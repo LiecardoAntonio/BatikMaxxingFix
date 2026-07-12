@@ -114,6 +114,7 @@ final class NoCanvasViewModel {
             case .userUpload(_, let imageData):
                 canvasItem = CanvasItemModel(imageData: imageData)      // salinan (snapshot)
             }
+            canvasItem.sourceID = item.id 
             context.insert(canvasItem)
             canvasItem.canvas = newCanvas
         }

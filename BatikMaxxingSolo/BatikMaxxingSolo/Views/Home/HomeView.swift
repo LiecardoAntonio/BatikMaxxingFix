@@ -59,10 +59,13 @@ struct HomeView: View {
                     })
                     
                 case .libraryAddClothes(let canvas):
-                    LibraryView(onConfirm: { selectedItems in
-                        canvasActionViewModel.addItems(selectedItems, to: canvas, in: canvasContext)
+                    LibraryView(
+                    onConfirm: { selectedItems in
+                        canvasActionViewModel.syncItems(selectedItems, on: canvas, in: canvasContext)
                         homeViewModel.path.removeLast()
-                    })
+                    },
+                    preselectedItemIDs: Set(canvas.items.compactMap(\.sourceID))
+                )
                     
                 case .canvas(let canvas):
                     CanvasView(canvas: canvas, onAddClothes: {

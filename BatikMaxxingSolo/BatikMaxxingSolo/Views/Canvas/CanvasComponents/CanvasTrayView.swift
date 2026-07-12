@@ -6,7 +6,7 @@
 //
 
 //  Tray horizontal berisi item pilihan canvas + tombol "+" untuk
-//  menambah dari library. Dumb component.
+//  menambah dari library. Dumb component. Proporsi mengikuti Figma.
 //
 
 import SwiftUI
@@ -17,29 +17,29 @@ struct CanvasTrayView: View {
     let onItemTapped: (CanvasItemModel) -> Void
     let onAddTapped: () -> Void
 
+    private let cardSize: CGFloat = 140
+
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        VStack(alignment: .trailing, spacing: 10) {
+            Button(action: onAddTapped) {
+                Image(systemName: "plus")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 48, height: 48)
+                    .background(Color.orange)
+                    .clipShape(Circle())
+            }
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(items) { item in
                         trayCard(for: item)
                     }
                 }
-                .padding(16)
             }
-            .frame(height: 130)
-            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24))
-
-            Button(action: onAddTapped) {
-                Image(systemName: "plus")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 40, height: 40)
-                    .background(Color.orange)
-                    .clipShape(Circle())
-            }
-            .offset(x: -8, y: -14)
         }
+        .padding(16)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 32))
     }
 
     private func trayCard(for item: CanvasItemModel) -> some View {
@@ -47,16 +47,16 @@ struct CanvasTrayView: View {
             onItemTapped(item)
         } label: {
             ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isItemSelected(item) ? Color.orange.opacity(0.2) : Color(red: 0.96, green: 0.96, blue: 0.96))
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(isItemSelected(item) ? Color.orange.opacity(0.25) : Color.white)
 
                 trayImage(for: item)
-                    .padding(8)
+                    .padding(12)
             }
-            .frame(width: 96, height: 96)
+            .frame(width: cardSize, height: cardSize)
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isItemSelected(item) ? Color.orange : Color(red: 0.88, green: 0.88, blue: 0.88),
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(isItemSelected(item) ? Color.orange : Color(red: 0.9, green: 0.9, blue: 0.9),
                             lineWidth: isItemSelected(item) ? 2 : 1)
             )
         }

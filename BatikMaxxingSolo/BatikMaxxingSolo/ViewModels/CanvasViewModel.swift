@@ -121,10 +121,26 @@ final class CanvasViewModel {
         deselect()
     }
 
-    // MARK: - Tambah item dari library (mode add-clothes)
+    /// onConfirm library (mode add-clothes) = daftar FINAL pilihan canvas.
+    /// Item lama yang tidak ada di daftar -> dihapus dari canvas & tray;
+    /// item baru -> ditambahkan.
+    func syncItems(_ selectedItems: Set<ClothingItem>, on canvas: CanvasDataModel, in context: ModelContext) {
+        let selectedIDs = Set(selectedItems.map(\.id))
 
-    func addItems(_ selectedItems: Set<ClothingItem>, to canvas: CanvasDataModel, in context: ModelContext) {
-        for item in selectedItems {
+        // Hapus yang di-unselect (snapshot dulu — jangan mutasi koleksi
+        // yang sedang di-iterate)
+        let currentItems = canvas.items
+        for item in currentItems {
+            guard let sourceID = item.sourceID else { continue }
+            if !selectedIDs.contains(sourceID) {
+                if isSelected(item) { deselect() }
+                context.delete(item)
+            }
+        }
+
+        // Tambah yang baru
+        let existingIDs = Set(canvas.items.compactMap(\.sourceID))
+        for item in selectedItems where !existingIDs.contains(item.id) {
             let canvasItem: CanvasItemModel
             switch item.source {
             case .bundled(let assetName):
@@ -132,9 +148,11 @@ final class CanvasViewModel {
             case .userUpload(_, let imageData):
                 canvasItem = CanvasItemModel(imageData: imageData)
             }
+            canvasItem.sourceID = item.id
             context.insert(canvasItem)
             canvasItem.canvas = canvas
         }
+
         canvas.updateLastUpdated()
     }
 }

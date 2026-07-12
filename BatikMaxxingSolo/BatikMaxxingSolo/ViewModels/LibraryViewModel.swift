@@ -40,6 +40,21 @@ final class LibraryViewModel {
             selectedItems.insert(item)
         }
     }
+    
+    /// Mode add-clothes: item yang sudah ada di canvas masuk sebagai
+    /// seleksi awal (bisa di-toggle). Guard selectedItems.isEmpty supaya
+    /// tidak mereset seleksi kalau view re-render.
+    func initializeSelection(preselectedIDs: Set<String>, userOutfits: [UserOutfitModel]) {
+        guard !preselectedIDs.isEmpty, selectedItems.isEmpty else { return }
+
+        let allBundled = (BundledOutfitCatalog.manSections + BundledOutfitCatalog.womanSections)
+            .flatMap(\.items)
+        let allUser = clothingItems(from: userOutfits)
+
+        for item in allBundled + allUser where preselectedIDs.contains(item.id) {
+            selectedItems.insert(item)
+        }
+    }
 
     func isSelected(_ item: ClothingItem) -> Bool {
         selectedItems.contains(item)

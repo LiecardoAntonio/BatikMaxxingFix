@@ -37,6 +37,9 @@ class CanvasItemModel {
     var zIndex: Int = 0
     var isLocked: Bool = false
     var isHidden: Bool = false
+    
+    /// ID ClothingItem asal (assetName untuk bundled, UUID untuk upload).
+    /// Dipakai untuk menandai item yang sudah ada saat buka library lagi.
     var sourceID: String?
 
     var canvas: CanvasDataModel?
