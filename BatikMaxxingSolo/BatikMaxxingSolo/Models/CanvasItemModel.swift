@@ -41,6 +41,9 @@ class CanvasItemModel {
     /// ID ClothingItem asal (assetName untuk bundled, UUID untuk upload).
     /// Dipakai untuk menandai item yang sudah ada saat buka library lagi.
     var sourceID: String?
+    
+    /// Rotasi item dalam derajat.
+    var rotationDegrees: Double = 0
 
     var canvas: CanvasDataModel?
 

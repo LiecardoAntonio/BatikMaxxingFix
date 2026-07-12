@@ -14,11 +14,14 @@ struct BatikMaxxingSoloApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [
-            CanvasDataModel.self,
-            CanvasItemModel.self,
-            UserFullBodyImageModel.self,
-            UserOutfitModel.self
-        ]) // this will serve as the container to store the data so it will be persistent
+        .modelContainer( // this will serve as the container to store the data so it will be persistent
+            for: [
+                CanvasDataModel.self,
+                CanvasItemModel.self,
+                UserFullBodyImageModel.self,
+                UserOutfitModel.self
+            ],
+            isUndoEnabled: true // so we can undo/redo
+        )
     }
 }
