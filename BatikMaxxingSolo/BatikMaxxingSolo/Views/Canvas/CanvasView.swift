@@ -15,6 +15,7 @@ import SwiftData
 struct CanvasView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.undoManager) private var undoManager
 
     @Bindable var canvas: CanvasDataModel
     let onAddClothes: () -> Void
@@ -91,6 +92,12 @@ struct CanvasView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .onAppear {
+            // Undo/redo scoped per sesi canvas: riwayat dikosongkan setiap
+            // kali canvas dibuka — hanya perubahan sesi ini yang bisa
+            // di-undo (requirement produk).
+            undoManager?.removeAllActions()
+        }
     }
 
     // MARK: - Top bar
@@ -106,7 +113,30 @@ struct CanvasView: View {
                     .frame(width: 44, height: 44)
                     .glassEffect()
             }
+
             Spacer()
+
+            HStack(spacing: 0) {
+                Button {
+                    undoManager?.undo()
+                } label: {
+                    Image(systemName: "arrow.uturn.backward")
+                        .frame(width: 44, height: 44)
+                        .foregroundStyle((undoManager?.canUndo ?? false) ? .black : Color.gray.opacity(0.45))
+                }
+                .disabled(!(undoManager?.canUndo ?? false))
+
+                Button {
+                    undoManager?.redo()
+                } label: {
+                    Image(systemName: "arrow.uturn.forward")
+                        .frame(width: 44, height: 44)
+                        .foregroundStyle((undoManager?.canRedo ?? false) ? .black : Color.gray.opacity(0.45))
+                }
+                .disabled(!(undoManager?.canRedo ?? false))
+            }
+            .font(.system(size: 16, weight: .medium))
+            .glassEffect(.regular, in: Capsule())
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
