@@ -5,10 +5,13 @@
 //  Created by James Richard Renaldo on 10/07/26.
 //
 
-//  Layar pemilihan pakaian. Reusable dua mode lewat closure:
-//  - create-canvas: dipush setelah konfirmasi foto badan
-//  - add-clothes: dipush dari tombol "+" di CanvasView
-//  View ini tidak tahu mode apa — pemanggil yang menentukan lewat closure.
+//  Layar pemilihan pakaian. Reusable dua mode lewat closure & parameter:
+//  - Mode create-canvas: preselectedItemIDs kosong; onConfirm = buat
+//    canvas baru dari foto titipan + pilihan.
+//  - Mode add-clothes: preselectedItemIDs berisi item yang sudah ada di
+//    canvas (masuk sebagai seleksi awal, bisa di-unselect); onConfirm =
+//    daftar FINAL pilihan canvas (yang hilang dari daftar akan dihapus).
+//  View ini tidak tahu mode apa — pemanggil yang menentukan maknanya.
 //
 
 import SwiftUI
@@ -24,12 +27,16 @@ struct LibraryView: View {
     /// Dipanggil saat user tap ✓ dengan >= 1 item terpilih.
     let onConfirm: (Set<ClothingItem>) -> Void
 
+    /// Item yang sudah ada di canvas (mode add-clothes) — masuk sebagai
+    /// seleksi awal, tetap bisa di-toggle. Default kosong = mode create.
+    var preselectedItemIDs: Set<String> = []
+
     // Upload user untuk section "My Outfits" — reaktif, langsung muncul
     // begitu upload baru tersimpan.
     @Query(sort: \UserOutfitModel.createdAt, order: .reverse)
     private var userOutfits: [UserOutfitModel]
 
-    // Presentation state (UI-lokal — kriteria lama kita)
+    // Presentation state (UI-lokal)
     @State private var isMyOutfitsExpanded = true
     @State private var expandedSectionIDs: Set<String> = []
     @State private var isPhotosPickerPresented = false
@@ -102,7 +109,7 @@ struct LibraryView: View {
                 }
             }
         }
-        .toolbar(.hidden, for: .navigationBar)   // nav bar custom sudah ada
+        .toolbar(.hidden, for: .navigationBar)
         .photosPicker(
             isPresented: $isPhotosPickerPresented,
             selection: $viewModel.photosPickerItem,
@@ -118,12 +125,30 @@ struct LibraryView: View {
         .onChange(of: viewModel.photosPickerItem) { _, _ in
             viewModel.handlePickedOutfitPhoto(in: modelContext)
         }
+        .onAppear {
+            viewModel.initializeSelection(preselectedIDs: preselectedItemIDs, userOutfits: userOutfits)
+        }
     }
 }
 
-#Preview {
+#Preview("Mode create") {
     NavigationStack {
         LibraryView(onConfirm: { _ in })
+    }
+    .modelContainer(for: [
+        CanvasDataModel.self,
+        CanvasItemModel.self,
+        UserFullBodyImageModel.self,
+        UserOutfitModel.self
+    ], inMemory: true)
+}
+
+#Preview("Mode add-clothes (preselected)") {
+    NavigationStack {
+        LibraryView(
+            onConfirm: { _ in },
+            preselectedItemIDs: ["ClothingItems/blue-parang-batik-shirt"]
+        )
     }
     .modelContainer(for: [
         CanvasDataModel.self,
