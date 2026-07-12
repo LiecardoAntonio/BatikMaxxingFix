@@ -22,6 +22,23 @@ class CanvasItemModel {
     @Attribute(.externalStorage) var imageData: Data?
     var createdAt: Date = Date()
 
+    // MARK: - Penempatan di canvas
+    /// false = masih di tray saja; true = sudah ditaruh di atas foto badan.
+    var isPlaced: Bool = false
+    /// Posisi TITIK TENGAH item, dalam koordinat relatif 0...1 terhadap
+    /// ukuran canvas (bukan piksel!) — supaya konsisten di semua ukuran
+    /// layar/device.
+    var positionX: Double = 0.5
+    var positionY: Double = 0.5
+    /// Lebar item relatif terhadap lebar canvas (0...1). Tinggi mengikuti
+    /// aspect ratio gambar.
+    var relativeWidth: Double = 0.4
+    /// Urutan tumpukan: makin besar makin depan.
+    var zIndex: Int = 0
+    var isLocked: Bool = false
+    var isHidden: Bool = false
+    var sourceID: String?
+
     var canvas: CanvasDataModel?
 
     init(assetName: String? = nil, imageData: Data? = nil) {

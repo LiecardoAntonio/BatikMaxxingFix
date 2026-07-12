@@ -14,5 +14,7 @@ import Foundation
 
 enum HomeRoute: Hashable {
     case librarySelection            // pilih baju untuk canvas BARU
+    case libraryAddClothes(CanvasDataModel)
     case canvas(CanvasDataModel)     // buka sebuah canvas
 }
+

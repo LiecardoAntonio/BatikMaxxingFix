@@ -12,16 +12,17 @@ struct HomeView: View {
     @Environment(\.modelContext) private var canvasContext
     @Query(sort: \CanvasDataModel.lastUpdated, order: .reverse)
     private var canvases: [CanvasDataModel]
-
+    
     @State private var homeViewModel = HomeViewModel()
     @State private var noCanvasViewModel = NoCanvasViewModel()
     @State private var gridViewModel = CanvasGridViewModel()
-
+    @State private var canvasActionViewModel = CanvasViewModel()
+    
     var body: some View {
         NavigationStack(path: $homeViewModel.path) {
             ZStack {
                 Color.white.ignoresSafeArea(edges: .all)
-
+                
                 VStack {
                     HStack {
                         Text("All Outfits")
@@ -31,7 +32,7 @@ struct HomeView: View {
                         Spacer()
                     }
                     .padding(16)
-
+                    
                     if canvases.isEmpty {
                         NoCanvasView(
                             viewModel: noCanvasViewModel,
@@ -56,9 +57,17 @@ struct HomeView: View {
                             homeViewModel.completeCanvasCreation(newCanvas)
                         }
                     })
-
+                    
+                case .libraryAddClothes(let canvas):
+                    LibraryView(onConfirm: { selectedItems in
+                        canvasActionViewModel.addItems(selectedItems, to: canvas, in: canvasContext)
+                        homeViewModel.path.removeLast()
+                    })
+                    
                 case .canvas(let canvas):
-                    CanvasView(canvas: canvas)
+                    CanvasView(canvas: canvas, onAddClothes: {
+                        homeViewModel.path.append(.libraryAddClothes(canvas))
+                    })
                 }
             }
             .onChange(of: homeViewModel.path) { _, newPath in
@@ -85,12 +94,3 @@ struct HomeView: View {
     }
 }
 
-#Preview {
-    HomeView()
-        .modelContainer(for: [
-            CanvasDataModel.self,
-            CanvasItemModel.self,
-            UserFullBodyImageModel.self,
-            UserOutfitModel.self
-        ], inMemory: true)
-}
