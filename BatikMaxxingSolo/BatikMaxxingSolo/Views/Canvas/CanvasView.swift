@@ -5,8 +5,17 @@
 //  Created by Liecardo on 10/07/26.
 //
 
-//  Layar canvas: foto badan sebagai acuan (terkunci), item pakaian bisa
+//  Layar canvas: foto badan sebagai acuan, item pakaian bisa
 //  ditaruh/digeser di atasnya, tray di bawah, toolbar untuk item terpilih.
+//
+//  Catatan performa (hasil debugging bersama):
+//  1. Transform > layout: semua perubahan visual per-frame (pan, live
+//     resize) lewat offset/scaleEffect — tidak menyentuh frame/layout.
+//  2. Grid pakai teknik FASE: digambar seukuran layar dan tidak pernah
+//     bergeser — hanya fase titiknya yang mengikuti pan (modulo spacing).
+//  3. Foto badan di-decode SEKALI per sesi (@State + onAppear) dan
+//     di-downsample untuk tampilan — decode di computed property akan
+//     terpanggil ulang SETIAP frame gesture (penyebab freeze 60-500ms).
 //
 
 import SwiftUI
@@ -22,10 +31,18 @@ struct CanvasView: View {
 
     @State private var viewModel = CanvasViewModel()
 
-    private var bodyImage: UIImage? {
-        guard let data = canvas.fullBodyPicData else { return nil }
-        return UIImage(data: data)
-    }
+    // Pan canvas — UI-lokal per sesi (tidak di-persist)
+    @State private var panOffset: CGSize = .zero
+    @GestureState private var livePan: CGSize = .zero
+    
+    // Zoom canvas — UI-lokal per sesi, sama seperti pan
+    @State private var zoomScale: CGFloat = 1.0
+    @GestureState private var liveZoom: CGFloat = 1.0
+
+    /// Foto badan: di-decode SEKALI di onAppear (bukan computed property!)
+    /// dan di-downsample supaya GPU tidak memindahkan tekstur raksasa
+    /// setiap frame pan.
+    @State private var bodyImage: UIImage?
 
     private var placedItems: [CanvasItemModel] {
         canvas.items.filter(\.isPlaced).sorted { $0.zIndex < $1.zIndex }
@@ -37,41 +54,60 @@ struct CanvasView: View {
 
     var body: some View {
         ZStack {
-            DotGridBackground()
+            Color.white.ignoresSafeArea()   // dasar statis, paling belakang
 
             GeometryReader { geo in
                 ZStack {
-                    // Foto badan: acuan, tidak bisa digeser
-                    if let bodyImage {
-                        Image(uiImage: bodyImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: geo.size.width * 0.75)
-                            .position(x: geo.size.width / 2, y: geo.size.height / 2)
-                            .onTapGesture { viewModel.deselect() }
-                    }
+                    // Grid: seukuran layar, TIDAK ikut di-offset — hanya
+                    // FASE titiknya yang digeser oleh nilai pan.
+                    DotGridBackground(offset: CGSize(
+                        width: panOffset.width + livePan.width,
+                        height: panOffset.height + livePan.height
+                    ))
+                    .ignoresSafeArea()
 
-                    ForEach(placedItems) { item in
-                        CanvasItemView(
-                            item: item,
-                            isSelected: viewModel.isSelected(item),
-                            canvasSize: geo.size,
-                            onTap: { viewModel.select(item) },
-                            onDragEnded: { translation in
-                                viewModel.commitDrag(item, translation: translation, canvasSize: geo.size, on: canvas)
-                            },
-                            onResizeEnded: { scale in
-                                viewModel.commitResize(item, scale: scale, on: canvas)
-                            },
-                            onRotateEnded: { degrees in
-                                viewModel.commitRotation(item, degrees: degrees, on: canvas)
-                            }
-                        )
+                    // Lapisan yang benar-benar bergeser: foto + item saja
+                    ZStack {
+                        if let bodyImage {
+                            Image(uiImage: bodyImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: geo.size.width * 0.75)
+                                .position(x: geo.size.width / 2, y: geo.size.height / 2)
+                                .onTapGesture { viewModel.deselect() }
+                        }
+
+                        ForEach(placedItems) { item in
+                            CanvasItemView(
+                                item: item,
+                                isSelected: viewModel.isSelected(item),
+                                canvasSize: geo.size,
+                                onTap: { viewModel.select(item) },
+                                onDragEnded: { translation in
+                                    viewModel.commitDrag(item, translation: translation, canvasSize: geo.size, on: canvas)
+                                },
+                                onResizeEnded: { scale in
+                                    viewModel.commitResize(item, scale: scale, on: canvas)
+                                },
+                                onRotateEnded: { degrees in
+                                    viewModel.commitRotation(item, degrees: degrees, on: canvas)
+                                }
+                            )
+                        }
                     }
+                    .scaleEffect(zoomScale * liveZoom)
+                    .offset(
+                        x: panOffset.width + livePan.width,
+                        y: panOffset.height + livePan.height
+                    )
                 }
                 .contentShape(Rectangle())
+                .onTapGesture { viewModel.deselect() }   // tap area kosong = deselect
+                .gesture(canvasPanGesture(bounds: geo.size))
+                .simultaneousGesture(canvasZoomGesture, including: viewModel.selectedItemID == nil ? .all : .subviews) // biar ga zoom bareng resize
             }
 
+            // UI overlay — menempel layar, TIDAK ikut ter-offset
             VStack {
                 topBar
                 Spacer()
@@ -94,11 +130,45 @@ struct CanvasView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             // Undo/redo scoped per sesi canvas: riwayat dikosongkan setiap
-            // kali canvas dibuka — hanya perubahan sesi ini yang bisa
-            // di-undo (requirement produk).
+            // kali canvas dibuka.
             undoManager?.removeAllActions()
+
+            // Decode foto badan SEKALI per sesi + downsample untuk tampilan
+            // (database tetap menyimpan resolusi asli).
+            if bodyImage == nil, let data = canvas.fullBodyPicData {
+                bodyImage = UIImage(data: data)?.downsampled(maxDimension: 1200)
+            }
         }
     }
+
+    // MARK: - Pan canvas
+
+    private func canvasPanGesture(bounds: CGSize) -> some Gesture {
+        DragGesture()
+            .updating($livePan) { value, state, _ in
+                state = value.translation
+            }
+            .onEnded { value in
+                let proposedX = panOffset.width + value.translation.width
+                let proposedY = panOffset.height + value.translation.height
+                // Clamp: maksimal menjelajah satu layar ke tiap arah.
+                panOffset = CGSize(
+                    width: min(max(proposedX, -bounds.width), bounds.width),
+                    height: min(max(proposedY, -bounds.height), bounds.height)
+                )
+            }
+    }
+    
+    private var canvasZoomGesture: some Gesture {
+            MagnificationGesture()
+                .updating($liveZoom) { value, state, _ in
+                    state = value
+                }
+                .onEnded { value in
+                    // Clamp 0.5x - 3x
+                    zoomScale = min(max(zoomScale * value, 0.5), 3.0)
+                }
+        }
 
     // MARK: - Top bar
 
@@ -142,7 +212,7 @@ struct CanvasView: View {
         .padding(.top, 8)
     }
 
-    // MARK: - Toolbar item terpilih (Figma: eye, duplicate, layers, lock, trash)
+    // MARK: - Toolbar item terpilih
 
     private var itemToolbar: some View {
         HStack(spacing: 20) {
@@ -178,15 +248,25 @@ struct CanvasView: View {
 // MARK: - Background dot grid (seperti Figma)
 
 struct DotGridBackground: View {
+    /// Total pan (committed + live). Grid tidak benar-benar bergeser —
+    /// hanya FASE titiknya (offset modulo spacing), jadi terasa tak
+    /// berujung tanpa perlu canvas 3x layar / tekstur raksasa.
+    var offset: CGSize = .zero
+
+    private let spacing: CGFloat = 24
+    private let dotSize: CGFloat = 2.5
+
     var body: some View {
         Canvas { context, size in
-            let spacing: CGFloat = 24
-            var x: CGFloat = 12
-            while x < size.width {
-                var y: CGFloat = 12
-                while y < size.height {
+            let phaseX = offset.width.truncatingRemainder(dividingBy: spacing)
+            let phaseY = offset.height.truncatingRemainder(dividingBy: spacing)
+
+            var x = phaseX - spacing
+            while x < size.width + spacing {
+                var y = phaseY - spacing
+                while y < size.height + spacing {
                     context.fill(
-                        Path(ellipseIn: CGRect(x: x, y: y, width: 2.5, height: 2.5)),
+                        Path(ellipseIn: CGRect(x: x, y: y, width: dotSize, height: dotSize)),
                         with: .color(Color(red: 0.85, green: 0.85, blue: 0.85))
                     )
                     y += spacing
@@ -194,8 +274,7 @@ struct DotGridBackground: View {
                 x += spacing
             }
         }
-        .ignoresSafeArea()
-        .background(Color.white)
+        .allowsHitTesting(false)
     }
 }
 

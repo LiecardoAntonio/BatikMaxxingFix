@@ -5,27 +5,27 @@
 //  Created by Liecardo on 12/07/26.
 //
 
-//  Satu item yang sudah ditempatkan di canvas. Tap = pilih; drag = geser
-//  (kecuali terkunci). Live offset di @State; commit ke model hanya saat
-//  gesture selesai — satu gesture, satu perubahan data.
+//  Item di canvas: tap = pilih; drag = geser; handle sudut = resize
+//  proporsional; handle atas = rotate. Pinch & putar dua-jari HANYA
+//  aktif saat item terpilih — selain itu sentuhan menembus ke container
+//  (menjadi zoom canvas).
 //
-//  Item di canvas: tap = pilih; drag = geser; pinch = resize; dua jari
-//  putar = rotate. Semua live state di View, commit ke model hanya di
-//  akhir gesture — satu gesture, satu perubahan data (nanti = satu undo).
+//  Catatan performa (hasil debugging bersama):
+//  1. Live resize murni TRANSFORM (.scaleEffect di rantai luar) — TIDAK
+//     mengubah .frame() per frame.
+//  2. Gambar di-decode SEKALI (cachedImage + onAppear).
+//  3. Pelacak pusat global hanya aktif saat item terpilih + tolak
+//     tulisan state yang nilainya sama.
 //
-//  Catatan geometri penting:
-//  1. Seluruh view dibungkus frame dengan MARGIN SIMETRIS di semua sisi
-//     (ruang untuk handle). Simetris = titik tengah frame tetap sama
-//     dengan titik tengah gambar, sehingga .position() dan .rotationEffect
-//     (anchor .center) tetap presisi tanpa offset tambahan.
-//  2. Handle visual kecil (24pt) tapi area sentuh 44pt (standar HIG) —
-//     lewat frame transparan di sekelilingnya.
-//  3. Resize: translation jari dilaporkan dalam ruang layar, padahal
-//     handle ikut ter-rotate — jadi dikonversi ke ruang lokal item pakai
-//     trigonometri sebelum dihitung jaraknya dari pusat.
-//  4. Rotate: pakai DragGesture(coordinateSpace: .global) + posisi pusat
-//     item yang dilacak GeometryReader di ruang .global — sudut dihitung
-//     dengan atan2 dari pusat ke jari, tanpa aproksimasi.
+//  Catatan geometri:
+//  - Frame dibungkus MARGIN SIMETRIS di semua sisi (ruang handle) supaya
+//    pusat frame = pusat gambar -> .position() & .rotationEffect
+//    (anchor .center) tetap presisi.
+//  - Handle visual kecil (24pt), area sentuh 44pt (standar HIG).
+//  - Resize: translation jari (ruang layar) dikonversi trigonometri ke
+//    ruang lokal item yang ter-rotate.
+//  - Rotate: DragGesture(coordinateSpace: .global) + pusat item global
+//    dari GeometryReader; sudut dihitung dengan atan2 tanpa aproksimasi.
 //
 
 import SwiftUI
@@ -44,10 +44,14 @@ struct CanvasItemView: View {
     @State private var liveScale: CGFloat = 1.0
     @State private var liveRotation: Angle = .zero
 
-    // Snapshot untuk gesture handle
+    // Snapshot untuk gesture handle rotate
     @State private var rotationStartFingerAngle: Double?
     @State private var accumulatedRotationDelta: Double = 0
     @State private var itemCenterGlobal: CGPoint = .zero
+
+    /// Gambar di-decode SEKALI di onAppear — bukan di computed property
+    /// yang dieksekusi ulang setiap frame gesture.
+    @State private var cachedImage: UIImage?
 
     private let handleVisualSize: CGFloat = 24
     private let handleTouchSize: CGFloat = 44
@@ -55,31 +59,23 @@ struct CanvasItemView: View {
 
     private var margin: CGFloat { rotateHandleDistance + handleTouchSize }
 
-    /// Aspect ratio gambar (width/height) — untuk menghitung tinggi render.
+    /// Aspect ratio gambar (width/height) — dari cache, bukan decode ulang.
     private var imageAspect: CGFloat {
-        if let assetName = item.assetName, let ui = UIImage(named: assetName), ui.size.height > 0 {
-            return ui.size.width / ui.size.height
-        }
-        if let data = item.imageData, let ui = UIImage(data: data), ui.size.height > 0 {
-            return ui.size.width / ui.size.height
-        }
-        return 1
+        guard let img = cachedImage, img.size.height > 0 else { return 1 }
+        return img.size.width / img.size.height
     }
 
     var body: some View {
         let width = canvasSize.width * item.relativeWidth
         let height = width / imageAspect
-        let liveW = width * liveScale
-        let liveH = height * liveScale
-        let frameW = liveW + margin * 2
-        let frameH = liveH + margin * 2
+        let frameW = width + margin * 2
+        let frameH = height + margin * 2
         let cx = frameW / 2
         let cy = frameH / 2
 
         ZStack {
             itemImage
                 .frame(width: width, height: height)
-                .scaleEffect(liveScale)
                 .contentShape(Rectangle())
                 .onTapGesture(perform: onTap)
                 .position(x: cx, y: cy)
@@ -87,7 +83,7 @@ struct CanvasItemView: View {
             if isSelected {
                 Rectangle()
                     .stroke(Color.orange, lineWidth: 2)
-                    .frame(width: liveW, height: liveH)
+                    .frame(width: width, height: height)
                     .position(x: cx, y: cy)
                     .allowsHitTesting(false)
 
@@ -95,29 +91,37 @@ struct CanvasItemView: View {
                 Rectangle()
                     .fill(Color.orange)
                     .frame(width: 1.5, height: rotateHandleDistance)
-                    .position(x: cx, y: cy - liveH / 2 - rotateHandleDistance / 2)
+                    .position(x: cx, y: cy - height / 2 - rotateHandleDistance / 2)
                     .allowsHitTesting(false)
 
                 rotateHandle
-                    .position(x: cx, y: cy - liveH / 2 - rotateHandleDistance)
+                    .position(x: cx, y: cy - height / 2 - rotateHandleDistance)
 
-                cornerHandle(sx: -1, sy: -1).position(x: cx - liveW / 2, y: cy - liveH / 2)
-                cornerHandle(sx:  1, sy: -1).position(x: cx + liveW / 2, y: cy - liveH / 2)
-                cornerHandle(sx: -1, sy:  1).position(x: cx - liveW / 2, y: cy + liveH / 2)
-                cornerHandle(sx:  1, sy:  1).position(x: cx + liveW / 2, y: cy + liveH / 2)
+                cornerHandle(sx: -1, sy: -1).position(x: cx - width / 2, y: cy - height / 2)
+                cornerHandle(sx:  1, sy: -1).position(x: cx + width / 2, y: cy - height / 2)
+                cornerHandle(sx: -1, sy:  1).position(x: cx - width / 2, y: cy + height / 2)
+                cornerHandle(sx:  1, sy:  1).position(x: cx + width / 2, y: cy + height / 2)
             }
         }
         .frame(width: frameW, height: frameH)
         .background {
-            // Lacak pusat item di ruang GLOBAL — dipakai gesture rotate.
-            GeometryReader { geo in
-                Color.clear
-                    .onAppear { itemCenterGlobal = CGPoint(x: geo.frame(in: .global).midX, y: geo.frame(in: .global).midY) }
-                    .onChange(of: geo.frame(in: .global)) { _, f in
-                        itemCenterGlobal = CGPoint(x: f.midX, y: f.midY)
-                    }
+            // Pelacak pusat global HANYA saat terpilih — dibutuhkan gesture
+            // rotate saja.
+            if isSelected {
+                GeometryReader { geo in
+                    Color.clear
+                        .onAppear {
+                            let f = geo.frame(in: .global)
+                            itemCenterGlobal = CGPoint(x: f.midX, y: f.midY)
+                        }
+                        .onChange(of: geo.frame(in: .global)) { _, f in
+                            let c = CGPoint(x: f.midX, y: f.midY)
+                            if c != itemCenterGlobal { itemCenterGlobal = c }
+                        }
+                }
             }
         }
+        .scaleEffect(liveScale)   // live resize murni TRANSFORM, bukan layout
         .rotationEffect(Angle(degrees: item.rotationDegrees) + liveRotation)
         .position(
             x: canvasSize.width * item.positionX + liveDrag.width,
@@ -127,16 +131,28 @@ struct CanvasItemView: View {
         .opacity(item.isHidden ? 0 : 1)
         .allowsHitTesting(!item.isHidden)
         .gesture(dragGesture)
-        .simultaneousGesture(pinchGesture)
-        .simultaneousGesture(twoFingerRotateGesture)
+        // Dua-jari HANYA saat terpilih (.gesture); selain itu dimatikan
+        // total (.none) supaya pinch menembus ke container = zoom canvas.
+        .simultaneousGesture(pinchGesture, including: isSelected ? .gesture : .none)
+        .simultaneousGesture(twoFingerRotateGesture, including: isSelected ? .gesture : .none)
+        .onAppear {
+            // Decode gambar SEKALI per kemunculan item.
+            if cachedImage == nil {
+                if let assetName = item.assetName {
+                    cachedImage = UIImage(named: assetName)
+                } else if let data = item.imageData {
+                    cachedImage = UIImage(data: data)
+                }
+            }
+        }
     }
 
     @ViewBuilder
     private var itemImage: some View {
-        if let assetName = item.assetName {
-            Image(assetName).resizable().scaledToFit()
-        } else if let data = item.imageData, let uiImage = UIImage(data: data) {
-            Image(uiImage: uiImage).resizable().scaledToFit()
+        if let cachedImage {
+            Image(uiImage: cachedImage)
+                .resizable()
+                .scaledToFit()
         }
     }
 
@@ -191,8 +207,8 @@ struct CanvasItemView: View {
                 guard !item.isLocked else { return }
 
                 // Konversi translation (ruang layar) -> ruang lokal item
-                // yang sedang ter-rotate, supaya arah tarikan tetap benar
-                // di sudut rotasi berapa pun.
+                // yang ter-rotate, supaya arah tarikan tetap benar di
+                // sudut rotasi berapa pun.
                 let radians = item.rotationDegrees * .pi / 180
                 let cosT = cos(radians), sinT = sin(radians)
                 let tx = Double(value.translation.width)
@@ -250,7 +266,7 @@ struct CanvasItemView: View {
             }
     }
 
-    // MARK: - Gesture dua-jari (alternatif, tetap didukung)
+    // MARK: - Gesture dua-jari (alternatif handle, hanya saat terpilih)
 
     private var pinchGesture: some Gesture {
         MagnificationGesture()
