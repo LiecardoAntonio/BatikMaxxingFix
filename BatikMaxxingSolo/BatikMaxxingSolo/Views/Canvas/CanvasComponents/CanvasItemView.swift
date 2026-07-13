@@ -97,10 +97,10 @@ struct CanvasItemView: View {
                 rotateHandle
                     .position(x: cx, y: cy - height / 2 - rotateHandleDistance)
 
-                cornerHandle(sx: -1, sy: -1).position(x: cx - width / 2, y: cy - height / 2)
-                cornerHandle(sx:  1, sy: -1).position(x: cx + width / 2, y: cy - height / 2)
-                cornerHandle(sx: -1, sy:  1).position(x: cx - width / 2, y: cy + height / 2)
-                cornerHandle(sx:  1, sy:  1).position(x: cx + width / 2, y: cy + height / 2)
+                cornerHandle().position(x: cx - width / 2, y: cy - height / 2)
+                cornerHandle().position(x: cx + width / 2, y: cy - height / 2)
+                cornerHandle().position(x: cx - width / 2, y: cy + height / 2)
+                cornerHandle().position(x: cx + width / 2, y: cy + height / 2)
             }
         }
         .frame(width: frameW, height: frameH)
@@ -179,9 +179,9 @@ struct CanvasItemView: View {
             .gesture(rotateHandleGesture)
     }
 
-    private func cornerHandle(sx: Double, sy: Double) -> some View {
+    private func cornerHandle() -> some View {
         handleDot()
-            .gesture(resizeHandleGesture(sx: sx, sy: sy))
+            .gesture(resizeHandleGesture)
     }
 
     // MARK: - Gesture: drag body (geser)
@@ -201,32 +201,23 @@ struct CanvasItemView: View {
 
     // MARK: - Gesture: resize via handle sudut (proporsional)
 
-    private func resizeHandleGesture(sx: Double, sy: Double) -> some Gesture {
-        DragGesture(minimumDistance: 0)
+    private var resizeHandleGesture: some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .global)
             .onChanged { value in
                 guard !item.isLocked else { return }
 
-                // Konversi translation (ruang layar) -> ruang lokal item
-                // yang ter-rotate, supaya arah tarikan tetap benar di
-                // sudut rotasi berapa pun.
-                let radians = item.rotationDegrees * .pi / 180
-                let cosT = cos(radians), sinT = sin(radians)
-                let tx = Double(value.translation.width)
-                let ty = Double(value.translation.height)
-                let localDx = tx * cosT + ty * sinT
-                let localDy = -tx * sinT + ty * cosT
+                let startDist = hypot(
+                    value.startLocation.x - itemCenterGlobal.x,
+                    value.startLocation.y - itemCenterGlobal.y
+                )
+                guard startDist > 1 else { return }
 
-                let width = Double(canvasSize.width) * item.relativeWidth
-                let height = width / Double(imageAspect)
-                let hw = width / 2, hh = height / 2
-                let startDist = (hw * hw + hh * hh).squareRoot()
-                guard startDist > 0 else { return }
+                let currentDist = hypot(
+                    value.location.x - itemCenterGlobal.x,
+                    value.location.y - itemCenterGlobal.y
+                )
 
-                let newX = sx * hw + localDx
-                let newY = sy * hh + localDy
-                let newDist = (newX * newX + newY * newY).squareRoot()
-
-                liveScale = max(CGFloat(newDist / startDist), 0.15)
+                liveScale = max(currentDist / startDist, 0.15)
             }
             .onEnded { _ in
                 guard !item.isLocked else { return }
