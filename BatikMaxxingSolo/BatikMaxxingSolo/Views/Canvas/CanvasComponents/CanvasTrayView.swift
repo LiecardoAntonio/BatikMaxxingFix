@@ -16,6 +16,7 @@ struct CanvasTrayView: View {
     let isItemSelected: (CanvasItemModel) -> Bool
     let onItemTapped: (CanvasItemModel) -> Void
     let onAddTapped: () -> Void
+    let onItemDeleted: (CanvasItemModel) -> Void
 
     private let cardSize: CGFloat = 140
 
@@ -61,6 +62,21 @@ struct CanvasTrayView: View {
             )
         }
         .buttonStyle(.plain)
+        .overlay(alignment: .topTrailing) {
+            Button {
+                onItemDeleted(item)
+            } label: {
+                Image(systemName: "minus")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 22, height: 22)
+                    .background(Color.red)
+                    .clipShape(Circle())
+            }
+            .offset(x: 6, y: -6)
+        }
+        .padding(.top, 6)       // ruang supaya tombol minus tidak terpotong
+        .padding(.trailing, 6)
     }
 
     @ViewBuilder
