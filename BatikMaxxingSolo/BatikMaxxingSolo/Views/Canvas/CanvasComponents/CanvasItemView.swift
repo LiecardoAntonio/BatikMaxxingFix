@@ -141,7 +141,7 @@ struct CanvasItemView: View {
                 if let assetName = item.assetName {
                     cachedImage = UIImage(named: assetName)
                 } else if let data = item.imageData {
-                    cachedImage = UIImage(data: data)
+                    cachedImage = UIImage(data: data)?.downsampled(maxDimension: 1200)
                 }
             }
         }

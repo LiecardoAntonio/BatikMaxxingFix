@@ -71,6 +71,7 @@ final class CanvasViewModel {
     func duplicateSelected(on canvas: CanvasDataModel, in context: ModelContext) {
         guard let item = selectedItem(in: canvas) else { return }
         let copy = CanvasItemModel(assetName: item.assetName, imageData: item.imageData)
+        copy.isBodyPhoto = false   // so that the duplicated body image can be deleted
         copy.isPlaced = true
         copy.positionX = (item.positionX + 0.05).clamped(to: 0...1)
         copy.positionY = (item.positionY + 0.05).clamped(to: 0...1)
@@ -115,7 +116,7 @@ final class CanvasViewModel {
     }
 
     func deleteSelected(on canvas: CanvasDataModel, in context: ModelContext) {
-        guard let item = selectedItem(in: canvas) else { return }
+        guard let item = selectedItem(in: canvas), !item.isBodyPhoto else { return }
         context.delete(item)
         canvas.updateLastUpdated()
         deselect()

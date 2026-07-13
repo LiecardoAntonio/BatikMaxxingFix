@@ -42,14 +42,14 @@ struct CanvasView: View {
     /// Foto badan: di-decode SEKALI di onAppear (bukan computed property!)
     /// dan di-downsample supaya GPU tidak memindahkan tekstur raksasa
     /// setiap frame pan.
-    @State private var bodyImage: UIImage?
+//    @State private var bodyImage: UIImage?
 
     private var placedItems: [CanvasItemModel] {
         canvas.items.filter(\.isPlaced).sorted { $0.zIndex < $1.zIndex }
     }
 
     private var trayItems: [CanvasItemModel] {
-        canvas.items.sorted { $0.createdAt < $1.createdAt }
+        canvas.items.filter { !$0.isBodyPhoto }.sorted { $0.createdAt < $1.createdAt }
     }
 
     var body: some View {
@@ -68,14 +68,14 @@ struct CanvasView: View {
 
                     // Lapisan yang benar-benar bergeser: foto + item saja
                     ZStack {
-                        if let bodyImage {
-                            Image(uiImage: bodyImage)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: geo.size.width * 0.75)
-                                .position(x: geo.size.width / 2, y: geo.size.height / 2)
-                                .onTapGesture { viewModel.deselect() }
-                        }
+//                        if let bodyImage {
+//                            Image(uiImage: bodyImage)
+//                                .resizable()
+//                                .scaledToFit()
+//                                .frame(width: geo.size.width * 0.75)
+//                                .position(x: geo.size.width / 2, y: geo.size.height / 2)
+//                                .onTapGesture { viewModel.deselect() }
+//                        }
 
                         ForEach(placedItems) { item in
                             CanvasItemView(
@@ -135,9 +135,9 @@ struct CanvasView: View {
 
             // Decode foto badan SEKALI per sesi + downsample untuk tampilan
             // (database tetap menyimpan resolusi asli).
-            if bodyImage == nil, let data = canvas.fullBodyPicData {
-                bodyImage = UIImage(data: data)?.downsampled(maxDimension: 1200)
-            }
+//            if bodyImage == nil, let data = canvas.fullBodyPicData {
+//                bodyImage = UIImage(data: data)?.downsampled(maxDimension: 1200)
+//            }
         }
     }
 
@@ -228,8 +228,13 @@ struct CanvasView: View {
                 viewModel.deleteSelected(on: canvas, in: modelContext)
             } label: {
                 Image(systemName: "trash")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(
+                        viewModel.selectedItem(in: canvas)?.isBodyPhoto == true
+                            ? Color.gray.opacity(0.45)
+                            : .red
+                    )
             }
+            .disabled(viewModel.selectedItem(in: canvas)?.isBodyPhoto == true)
         }
         .font(.system(size: 17))
         .foregroundStyle(.black)
