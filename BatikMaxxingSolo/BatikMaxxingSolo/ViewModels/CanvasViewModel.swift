@@ -168,6 +168,37 @@ final class CanvasViewModel {
 
         canvas.updateLastUpdated()
     }
+    
+    // MARK: - Thumbnail
+
+    /// Render isi canvas jadi thumbnail untuk card grid. Dipanggil saat
+    /// user meninggalkan canvas. ImageRenderer wajib di main thread.
+    @MainActor
+    func generateThumbnail(for canvas: CanvasDataModel, canvasSize: CGSize) {
+        guard canvasSize.width > 0, canvasSize.height > 0 else { return }
+
+        let visibleItems = canvas.items
+            .filter { $0.isPlaced && !$0.isHidden }
+            .sorted { $0.zIndex < $1.zIndex }
+        guard !visibleItems.isEmpty else { return }
+
+        // Render di setengah ukuran canvas — cukup tajam untuk card 140pt,
+        // jauh lebih kecil di penyimpanan.
+        let renderSize = CGSize(width: canvasSize.width / 2, height: canvasSize.height / 2)
+        let renderer = ImageRenderer(
+            content: CanvasSnapshotView(items: visibleItems, size: renderSize)
+        )
+        renderer.scale = 2.0
+
+        guard let uiImage = renderer.uiImage,
+              let data = uiImage.jpegData(compressionQuality: 0.7) else { return }
+        // JPEG (bukan PNG): thumbnail tidak butuh transparansi — latar
+        // putih sudah dirender — dan jauh lebih kecil.
+
+        canvas.thumbnailPicData = data
+        // SENGAJA tidak memanggil updateLastUpdated(): membuat thumbnail
+        // bukan "edit" — jangan mengubah urutan sort di grid.
+    }
 }
 
 private extension Double {

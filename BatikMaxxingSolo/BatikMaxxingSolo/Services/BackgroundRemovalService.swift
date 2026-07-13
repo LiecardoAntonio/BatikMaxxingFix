@@ -41,7 +41,7 @@ final class BackgroundRemovalService {
             let maskedPixelBuffer = try result.generateMaskedImage(
                 ofInstances: result.allInstances,
                 from: handler,
-                croppedToInstancesExtent: false
+                croppedToInstancesExtent: true //so that it crop the removed background
             )
 
             let maskedCIImage = CIImage(cvPixelBuffer: maskedPixelBuffer)

@@ -38,6 +38,8 @@ struct CanvasView: View {
     // Zoom canvas — UI-lokal per sesi, sama seperti pan
     @State private var zoomScale: CGFloat = 1.0
     @GestureState private var liveZoom: CGFloat = 1.0
+    
+    @State private var lastCanvasSize: CGSize = .zero
 
     /// Foto badan: di-decode SEKALI di onAppear (bukan computed property!)
     /// dan di-downsample supaya GPU tidak memindahkan tekstur raksasa
@@ -105,6 +107,8 @@ struct CanvasView: View {
                 .onTapGesture { viewModel.deselect() }   // tap area kosong = deselect
                 .gesture(canvasPanGesture(bounds: geo.size))
                 .simultaneousGesture(canvasZoomGesture, including: viewModel.selectedItemID == nil ? .all : .subviews) // biar ga zoom bareng resize
+                .onAppear { lastCanvasSize = geo.size }
+                .onChange(of: geo.size) { _, newSize in lastCanvasSize = newSize }
             }
 
             // UI overlay — menempel layar, TIDAK ikut ter-offset
@@ -138,6 +142,9 @@ struct CanvasView: View {
 //            if bodyImage == nil, let data = canvas.fullBodyPicData {
 //                bodyImage = UIImage(data: data)?.downsampled(maxDimension: 1200)
 //            }
+        }
+        .onDisappear {
+            viewModel.generateThumbnail(for: canvas, canvasSize: lastCanvasSize)
         }
     }
 

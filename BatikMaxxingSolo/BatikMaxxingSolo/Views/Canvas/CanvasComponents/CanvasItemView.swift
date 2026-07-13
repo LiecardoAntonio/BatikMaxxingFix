@@ -130,7 +130,7 @@ struct CanvasItemView: View {
         .zIndex(Double(item.zIndex))
         .opacity(item.isHidden ? 0 : 1)
         .allowsHitTesting(!item.isHidden)
-        .gesture(dragGesture)
+        .gesture(dragGesture, including: isSelected ? .all : .subviews)
         // Dua-jari HANYA saat terpilih (.gesture); selain itu dimatikan
         // total (.none) supaya pinch menembus ke container = zoom canvas.
         .simultaneousGesture(pinchGesture, including: isSelected ? .gesture : .none)
