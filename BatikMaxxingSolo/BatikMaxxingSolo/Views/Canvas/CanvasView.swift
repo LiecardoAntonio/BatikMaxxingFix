@@ -44,7 +44,7 @@ struct CanvasView: View {
     /// Foto badan: di-decode SEKALI di onAppear (bukan computed property!)
     /// dan di-downsample supaya GPU tidak memindahkan tekstur raksasa
     /// setiap frame pan.
-//    @State private var bodyImage: UIImage?
+    //  @State private var bodyImage: UIImage?
 
     private var placedItems: [CanvasItemModel] {
         canvas.items.filter(\.isPlaced).sorted { $0.zIndex < $1.zIndex }
@@ -233,7 +233,7 @@ struct CanvasView: View {
             }
 
             Button {
-                viewModel.deleteSelected(on: canvas, in: modelContext)
+                viewModel.removeSelectedFromCanvas(on: canvas)
             } label: {
                 Image(systemName: "trash")
                     .foregroundStyle(
