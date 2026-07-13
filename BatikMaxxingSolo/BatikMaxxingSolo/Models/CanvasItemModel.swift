@@ -23,6 +23,8 @@ class CanvasItemModel {
     var createdAt: Date = Date()
 
     // MARK: - Penempatan di canvas
+    var isBodyPhoto: Bool = false // to manipulate full body image (resize, etc)
+    
     /// false = masih di tray saja; true = sudah ditaruh di atas foto badan.
     var isPlaced: Bool = false
     /// Posisi TITIK TENGAH item, dalam koordinat relatif 0...1 terhadap

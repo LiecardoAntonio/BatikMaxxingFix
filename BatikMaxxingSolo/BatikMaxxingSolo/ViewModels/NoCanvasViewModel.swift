@@ -102,19 +102,28 @@ final class NoCanvasViewModel {
     ) {
         guard let photoData = pendingPhotoData else { return }
 
-        let newCanvas = CanvasDataModel(name: "Untitled", fullBodyPicData: photoData)
+        let newCanvas = CanvasDataModel(name: "Untitled")
         context.insert(newCanvas)
 
-        // Pilihan baju -> CanvasItemModel, sesuai jenis sumbernya
+        // Foto badan = item pertama: langsung terpasang di tengah,
+        // paling belakang (zIndex 0), bertanda isBodyPhoto.
+        let bodyItem = CanvasItemModel(imageData: photoData)
+        bodyItem.isBodyPhoto = true
+        bodyItem.isPlaced = true
+        bodyItem.relativeWidth = 0.75
+        bodyItem.zIndex = 0
+        context.insert(bodyItem)
+        bodyItem.canvas = newCanvas
+
         for item in selectedItems {
             let canvasItem: CanvasItemModel
             switch item.source {
             case .bundled(let assetName):
-                canvasItem = CanvasItemModel(assetName: assetName)      // referensi (hemat)
+                canvasItem = CanvasItemModel(assetName: assetName)
             case .userUpload(_, let imageData):
-                canvasItem = CanvasItemModel(imageData: imageData)      // salinan (snapshot)
+                canvasItem = CanvasItemModel(imageData: imageData)
             }
-            canvasItem.sourceID = item.id 
+            canvasItem.sourceID = item.id
             context.insert(canvasItem)
             canvasItem.canvas = newCanvas
         }
@@ -122,7 +131,7 @@ final class NoCanvasViewModel {
         pendingPhotoData = nil
         onCreated(newCanvas)
     }
-
+    
     /// User batal dari library → buang titipan.
     func cancelPendingSelection() {
         pendingPhotoData = nil
