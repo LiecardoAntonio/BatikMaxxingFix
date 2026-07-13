@@ -115,12 +115,12 @@ final class CanvasViewModel {
         canvas.updateLastUpdated()
     }
 
-    func deleteSelected(on canvas: CanvasDataModel, in context: ModelContext) {
-        guard let item = selectedItem(in: canvas), !item.isBodyPhoto else { return }
-        context.delete(item)
-        canvas.updateLastUpdated()
-        deselect()
-    }
+//    func deleteSelected(on canvas: CanvasDataModel, in context: ModelContext) {
+//        guard let item = selectedItem(in: canvas), !item.isBodyPhoto else { return }
+//        context.delete(item)
+//        canvas.updateLastUpdated()
+//        deselect()
+//    }
     
     // MARK: - Resize & Rotate (commit di akhir gesture)
     func commitResize(_ item: CanvasItemModel, scale: CGFloat, on canvas: CanvasDataModel) {
@@ -198,6 +198,20 @@ final class CanvasViewModel {
         canvas.thumbnailPicData = data
         // SENGAJA tidak memanggil updateLastUpdated(): membuat thumbnail
         // bukan "edit" — jangan mengubah urutan sort di grid.
+    }
+    
+    /// Hapus item tertentu (dipakai tombol "−" di tray & trash toolbar).
+    /// Foto badan tetap kebal.
+    func deleteItem(_ item: CanvasItemModel, on canvas: CanvasDataModel, in context: ModelContext) {
+        guard !item.isBodyPhoto else { return }
+        if isSelected(item) { deselect() }
+        context.delete(item)
+        canvas.updateLastUpdated()
+    }
+
+    func deleteSelected(on canvas: CanvasDataModel, in context: ModelContext) {
+        guard let item = selectedItem(in: canvas) else { return }
+        deleteItem(item, on: canvas, in: context)
     }
 }
 

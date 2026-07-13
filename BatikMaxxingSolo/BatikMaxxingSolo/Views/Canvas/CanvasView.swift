@@ -125,7 +125,8 @@ struct CanvasView: View {
                     items: trayItems,
                     isItemSelected: { viewModel.isSelected($0) },
                     onItemTapped: { viewModel.placeOrSelect($0, on: canvas) },
-                    onAddTapped: onAddClothes
+                    onAddTapped: onAddClothes,
+                    onItemDeleted: { viewModel.deleteItem($0, on: canvas, in: modelContext) },
                 )
                 .padding(.horizontal, 16)
                 .padding(.bottom, 8)
