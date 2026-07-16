@@ -44,14 +44,11 @@ struct LibrarySectionCard<Content: View>: View {
                 
                 // Decorative floral alignment assets
                 if hasAsset {
-                    HStack(spacing: -4) {
-                        Image(systemName: "laurel.leading")
-                            .font(.title2)
-                        Image(systemName: "flame.fill")
-                            .font(.title3)
-                    }
-                    .foregroundColor(.orange.opacity(0.6))
-                    .opacity(isExpanded ? 0.3 : 1.0)
+                    Image("BatikPattern")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 44)
+                        .opacity(isExpanded ? 0.3 : 1.0)
                 }
             }
             .padding(.all, 24)

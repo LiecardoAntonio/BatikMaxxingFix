@@ -6,12 +6,10 @@
 //
 
 //  Layar pemilihan pakaian. Reusable dua mode lewat closure & parameter:
-//  - Mode create-canvas: preselectedItemIDs kosong; onConfirm = buat
-//    canvas baru dari foto titipan + pilihan.
-//  - Mode add-clothes: preselectedItemIDs berisi item yang sudah ada di
-//    canvas (masuk sebagai seleksi awal, bisa di-unselect); onConfirm =
-//    daftar FINAL pilihan canvas (yang hilang dari daftar akan dihapus).
-//  View ini tidak tahu mode apa — pemanggil yang menentukan maknanya.
+//  - Mode create-canvas: preselectedItemIDs kosong.
+//  - Mode add-clothes: preselectedItemIDs = item yang sudah ada di canvas
+//    (seleksi awal, bisa di-unselect); onConfirm = daftar FINAL.
+//  Long-press item batik -> sheet informasi kultural.
 //
 
 import SwiftUI
@@ -24,15 +22,9 @@ struct LibraryView: View {
 
     @State private var viewModel = LibraryViewModel()
 
-    /// Dipanggil saat user tap ✓ dengan >= 1 item terpilih.
     let onConfirm: (Set<ClothingItem>) -> Void
-
-    /// Item yang sudah ada di canvas (mode add-clothes) — masuk sebagai
-    /// seleksi awal, tetap bisa di-toggle. Default kosong = mode create.
     var preselectedItemIDs: Set<String> = []
 
-    // Upload user untuk section "My Outfits" — reaktif, langsung muncul
-    // begitu upload baru tersimpan.
     @Query(sort: \UserOutfitModel.createdAt, order: .reverse)
     private var userOutfits: [UserOutfitModel]
 
@@ -41,6 +33,7 @@ struct LibraryView: View {
     @State private var expandedSectionIDs: Set<String> = []
     @State private var isPhotosPickerPresented = false
     @State private var isCameraPresented = false
+    @State private var batikInfoToShow: BatikInfo?
 
     var body: some View {
         ZStack {
@@ -63,6 +56,7 @@ struct LibraryView: View {
                     VStack(spacing: 14) {
                         LibrarySectionCard(
                             title: "My Outfits",
+                            hasAsset: true,
                             isExpanded: isMyOutfitsExpanded,
                             onTap: {
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
@@ -75,6 +69,7 @@ struct LibraryView: View {
                                 isProcessingUpload: viewModel.isProcessingUpload,
                                 isItemSelected: { viewModel.isSelected($0) },
                                 onItemTapped: { viewModel.toggleSelection($0) },
+                                onItemLongPressed: { showInfo(for: $0) },
                                 onTakePhoto: { isCameraPresented = true },
                                 onChoosePhoto: { isPhotosPickerPresented = true }
                             )
@@ -98,7 +93,8 @@ struct LibraryView: View {
                                 CategoryGridContent(
                                     items: section.items,
                                     isItemSelected: { viewModel.isSelected($0) },
-                                    onItemTapped: { viewModel.toggleSelection($0) }
+                                    onItemTapped: { viewModel.toggleSelection($0) },
+                                    onItemLongPressed: { showInfo(for: $0) }
                                 )
                             }
                         }
@@ -122,12 +118,24 @@ struct LibraryView: View {
             }
             .ignoresSafeArea()
         }
+        .sheet(item: $batikInfoToShow) { info in
+            BatikInfoSheet(info: info, onClose: { batikInfoToShow = nil })
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
         .onChange(of: viewModel.photosPickerItem) { _, _ in
             viewModel.handlePickedOutfitPhoto(in: modelContext)
         }
         .onAppear {
             viewModel.initializeSelection(preselectedIDs: preselectedItemIDs, userOutfits: userOutfits)
         }
+    }
+
+    /// Item non-batik (blazer, jeans, upload user) tidak punya info —
+    /// long-press di sana tidak melakukan apa-apa.
+    private func showInfo(for item: ClothingItem) {
+        guard let info = item.batikInfo else { return }
+        batikInfoToShow = info
     }
 }
 

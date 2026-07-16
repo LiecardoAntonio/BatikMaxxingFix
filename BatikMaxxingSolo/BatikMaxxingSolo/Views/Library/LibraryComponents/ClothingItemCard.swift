@@ -5,8 +5,8 @@
 //  Created by James Richard Renaldo on 11/07/26.
 //
 
-//  Kartu satu item pakaian di library. Bisa merender dua sumber:
-//  asset bawaan (bundled) maupun upload user (imageData).
+//  Kartu satu item pakaian di library. Merender dua sumber: asset bawaan
+//  maupun upload user. Long-press = minta tampilkan info (kalau ada).
 //
 
 import SwiftUI
@@ -15,6 +15,7 @@ struct ClothingItemCard: View {
     let item: ClothingItem
     let isSelected: Bool
     let onSelect: () -> Void
+    let onLongPress: () -> Void
 
     var body: some View {
         Button(action: onSelect) {
@@ -42,11 +43,15 @@ struct ClothingItemCard: View {
                 x: 0,
                 y: 2
             )
+            .contentShape(Rectangle())
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.4)
+                    .onEnded { _ in onLongPress() }
+            )
         }
         .buttonStyle(PlainButtonStyle())
     }
 
-    /// Render sesuai sumber item; fallback ke icon kalau gambar tidak ketemu.
     @ViewBuilder
     private var itemImage: some View {
         switch item.source {
@@ -84,12 +89,14 @@ struct ClothingItemCard: View {
         ClothingItemCard(
             item: ClothingItem(name: "Contoh", source: .bundled(assetName: "ClothingItems/blue-parang-batik-shirt")),
             isSelected: false,
-            onSelect: {}
+            onSelect: {},
+            onLongPress: {}
         )
         ClothingItemCard(
             item: ClothingItem(name: "Terpilih", source: .bundled(assetName: "tidak-ada")),
             isSelected: true,
-            onSelect: {}
+            onSelect: {},
+            onLongPress: {}
         )
     }
     .padding()

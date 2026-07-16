@@ -52,7 +52,30 @@ final class CanvasGridViewModel {
 
     func confirmDelete(in context: ModelContext) {
         guard let canvas = canvasToDelete else { return }
+
+        // 1) Materialisasi paksa: SENTUH property tiap item supaya SwiftData
+        //    benar-benar memuat datanya dari disk (Array(canvas.items) saja
+        //    tidak cukup — elemennya bisa tetap "future backing data").
+        let items = Array(canvas.items)
+        for item in items {
+            _ = item.zIndex
+            _ = item.isPlaced
+            _ = item.sourceID
+        }
+
+        // 2) Hapus TANPA undo registration. Snapshot undo pada objek
+        //    relationship inilah yang memicu fatal error.
+        let undoManager = context.undoManager
+        context.undoManager = nil
+
+        for item in items {
+            context.delete(item)
+        }
         context.delete(canvas)
+        try? context.save()
+
+        context.undoManager = undoManager   // kembalikan
+
         canvasToDelete = nil
         isDeleteConfirmationPresented = false
     }
