@@ -209,9 +209,22 @@ final class CanvasViewModel {
         canvas.updateLastUpdated()
     }
 
-    func deleteSelected(on canvas: CanvasDataModel, in context: ModelContext) {
-        guard let item = selectedItem(in: canvas) else { return }
-        deleteItem(item, on: canvas, in: context)
+    /// Trash di toolbar = keluarkan item dari canvas (kembali ke tray).
+    /// Record TIDAK dihapus — hanya statusnya jadi belum-terpasang.
+    /// (Hapus permanen = tombol "−" di tray -> deleteItem)
+    func removeSelectedFromCanvas(on canvas: CanvasDataModel) {
+        guard let item = selectedItem(in: canvas), !item.isBodyPhoto else { return }
+
+        item.isPlaced = false
+        // Reset ke default supaya kalau ditaruh lagi nanti tampil rapi
+        // di tengah, bukan di posisi/ukuran/rotasi terakhirnya.
+        item.positionX = 0.5
+        item.positionY = 0.5
+        item.relativeWidth = 0.4
+        item.rotationDegrees = 0
+
+        canvas.updateLastUpdated()
+        deselect()
     }
 }
 

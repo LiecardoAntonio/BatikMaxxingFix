@@ -12,6 +12,7 @@ struct MyOutfitsGridContent: View {
     let isProcessingUpload: Bool
     let isItemSelected: (ClothingItem) -> Bool
     let onItemTapped: (ClothingItem) -> Void
+    let onItemLongPressed: (ClothingItem) -> Void
     let onTakePhoto: () -> Void
     let onChoosePhoto: () -> Void
 
@@ -24,7 +25,8 @@ struct MyOutfitsGridContent: View {
                     ClothingItemCard(
                         item: outfit,
                         isSelected: isItemSelected(outfit),
-                        onSelect: { onItemTapped(outfit) }
+                        onSelect: { onItemTapped(outfit) },
+                        onLongPress: { onItemLongPressed(outfit) }
                     )
                 }
             }

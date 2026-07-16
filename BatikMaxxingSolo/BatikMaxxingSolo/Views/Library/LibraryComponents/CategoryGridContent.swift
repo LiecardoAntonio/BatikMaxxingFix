@@ -11,6 +11,7 @@ struct CategoryGridContent: View {
     let items: [ClothingItem]
     let isItemSelected: (ClothingItem) -> Bool
     let onItemTapped: (ClothingItem) -> Void
+    let onItemLongPressed: (ClothingItem) -> Void
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -19,7 +20,8 @@ struct CategoryGridContent: View {
                     ClothingItemCard(
                         item: item,
                         isSelected: isItemSelected(item),
-                        onSelect: { onItemTapped(item) }
+                        onSelect: { onItemTapped(item) },
+                        onLongPress: { onItemLongPressed(item) }
                     )
                 }
             }
